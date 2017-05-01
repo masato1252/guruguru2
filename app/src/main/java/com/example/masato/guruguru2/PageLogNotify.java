@@ -14,6 +14,11 @@ public class PageLogNotify {
         listener.dispLog(str);
     }
 
+    public void backToActivity() {
+
+        listener.completeTest();
+    }
+
     // リスナーをセットする
     public void setListener(PageLogListener listener){
 

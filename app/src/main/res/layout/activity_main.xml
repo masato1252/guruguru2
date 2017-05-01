@@ -31,22 +31,28 @@
                 android:id="@+id/main_title" />
 
             <Button
-                android:text="Button"
+                android:text="レガシー(ｄマーケット)"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:id="@+id/main_btn_1" />
 
             <Button
-                android:text="Button"
+                android:text="レガシー(ｄポイント)"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:id="@+id/main_btn_2" />
 
             <Button
-                android:text="動的スクリプトテスト"
+                android:text="動的スクリプト(ｄマーケット)"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:id="@+id/main_btn_3" />
+
+            <Button
+                android:text="動的スクリプト(ｄポイント)"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/main_btn_4" />
         </LinearLayout>
 
     </LinearLayout>

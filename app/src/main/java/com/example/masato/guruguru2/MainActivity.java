@@ -12,6 +12,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button btn_menu1;
     private Button btn_menu2;
     private Button btn_menu3;
+    private Button btn_menu4;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,6 +27,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         btn_menu3 = (Button) this.findViewById(R.id.main_btn_3);
         btn_menu3.setOnClickListener(this);
+
+        btn_menu4 = (Button) this.findViewById(R.id.main_btn_4);
+        btn_menu4.setOnClickListener(this);
     }
 
     @Override
@@ -48,6 +52,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             intent.putExtra("mode", 3);
             startActivity(intent);
             Log.d("intent", "3");
+        }else if(view == btn_menu4){
+
+            Intent intent = new Intent(this, WebViewActivity.class);
+            intent.putExtra("mode", 4);
+            startActivity(intent);
+            Log.d("intent", "4");
         }
     }
 }
