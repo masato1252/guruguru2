@@ -9,7 +9,7 @@ import java.util.List;
 public class JSData {
 
     private List<String> exeScriptList;
-    private List<String> checkScriptList;
+    private List<String> preScriptList;
 
     public List<String> getExeScriptList() {
         return exeScriptList;
@@ -19,11 +19,11 @@ public class JSData {
         this.exeScriptList = exeScriptList;
     }
 
-    public List<String> getCheckScriptList() {
-        return checkScriptList;
+    public List<String> getPreScriptList() {
+        return preScriptList;
     }
 
-    public void setCheckScriptList(List<String> checkScriptList) {
-        this.checkScriptList = checkScriptList;
+    public void setPreScriptList(List<String> preScriptList) {
+        this.preScriptList = preScriptList;
     }
 }

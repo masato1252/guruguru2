@@ -53,8 +53,12 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
     private List<String> logList;
     private LogListAdapter logListAdapter;
 
-    //実行jsリスト
+    //実行jsリスト(old)
     private List<JSData> jsList;
+
+    //シナリオリスト(new)
+    private List<Scenario> scenarioList;
+
 
     private static final String inputId = "09090841258";
     private static final String inputPass = "MATSUURA8";
@@ -66,6 +70,7 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
 
         Intent intent = getIntent();
         mode = intent.getIntExtra("mode", 1);
+
 
         pageLogNotify = new PageLogNotify();
         pageLogNotify.setListener(this);
@@ -84,32 +89,52 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
 
         //xWalkView.load("", null);
 
-        ControlApi ctrApi = new ControlApi(this);
-        //コールバック関数
-        ctrApi.setOnCallBack(new ControlApi.CallBackTask(){
+        if(mode==3 || mode==4) {
+            ControlApi ctrApi = new ControlApi(this);
+            //コールバック関数
+            ctrApi.setOnCallBack(new ControlApi.CallBackTask() {
 
-            @Override
-            public void CallBack(List<JSData> result) {
-                super.CallBack(result);
+                @Override
+                public void CallBack(List<JSData> result) {
+                    super.CallBack(result);
 
-                jsList = result;
-                xWalkView.setUIClient(new CustomUIClient(xWalkView));
-                customResourceClient = new CustomResourceClient(xWalkView, mode, pageLogNotify);
-                xWalkView.setResourceClient(customResourceClient);
-                customResourceClient.setPerameter(jsList);
+                    jsList = result;
+                    xWalkView.setUIClient(new CustomUIClient(xWalkView));
+                    customResourceClient = new CustomResourceClient(xWalkView, mode, pageLogNotify);
+                    xWalkView.setResourceClient(customResourceClient);
+                    customResourceClient.setPerameter(jsList);
 
-                if(mode==3 || mode==4){
-                    xWalkView.load(result.get(0).getExeScriptList().get(0), null);
-                }else {
-                    xWalkView.load("http://smt.docomo.ne.jp/", null);
+                    if (mode == 3 || mode == 4) {
+                        xWalkView.load(result.get(0).getExeScriptList().get(0), null);
+                    } else {
+                        xWalkView.load("http://smt.docomo.ne.jp/", null);
+                    }
+
                 }
 
+            });
+            ctrApi.execute(mode);
+        }
 
+        if(mode==100){
 
-            }
+            scenarioList = new ArrayList<Scenario>();
+            ScenarioApi scenarioApi = new ScenarioApi(this, AppStatics.getInstance().selectScenarioIndexes, scenarioList);
+            scenarioApi.setOnCallBack(new ScenarioApi.CallBackTask() {
 
-        });
-        ctrApi.execute(mode);
+                @Override
+                public void callBack(Integer result) {
+                    super.callBack(result);
+
+                    xWalkView.setUIClient(new CustomUIClient(xWalkView));
+                    customResourceClient = new CustomResourceClient(xWalkView, mode, pageLogNotify);
+                    xWalkView.setResourceClient(customResourceClient);
+                    Log.d("scene_url", scenarioList.get(0).getSceneList().get(0).getUrl());
+                    xWalkView.load(scenarioList.get(0).getSceneList().get(0).getUrl(), null);
+                }
+            });
+            scenarioApi.execute();
+        }
 
 //        XWalkCookieManager mCookieManager = new XWalkCookieManager();
 //        mCookieManager.setAcceptCookie(true);
@@ -214,6 +239,12 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
 //        }
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        AppStatics.getInstance().resetSelectScenarioIndexes();
+    }
 
     @Override
     public void onClick(View view) {
@@ -433,7 +464,7 @@ class CustomResourceClient extends XWalkResourceClient {
 
 
                         execJs = jsList.get(pageCount).getExeScriptList();
-                        checkJs = jsList.get(pageCount).getCheckScriptList();
+                        checkJs = jsList.get(pageCount).getPreScriptList();
 
                         Log.d("pageCount", pageCount.toString());
                         for (Integer i = 0; i < execJs.size(); i++) {

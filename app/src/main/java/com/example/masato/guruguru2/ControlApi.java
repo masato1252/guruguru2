@@ -270,7 +270,7 @@ public class ControlApi extends AsyncTask<Integer, Integer, List<JSData>> {
 
             JSData js = new JSData();
             js.setExeScriptList(execJs);
-            js.setCheckScriptList(checkJs);
+            js.setPreScriptList(checkJs);
             jsList.add(js);
 
         }

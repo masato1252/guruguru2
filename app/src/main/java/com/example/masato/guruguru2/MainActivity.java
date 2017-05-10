@@ -13,6 +13,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button btn_menu2;
     private Button btn_menu3;
     private Button btn_menu4;
+    private Button btn_menu5;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,6 +31,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         btn_menu4 = (Button) this.findViewById(R.id.main_btn_4);
         btn_menu4.setOnClickListener(this);
+
+        btn_menu5 = (Button) this.findViewById(R.id.main_btn_5);
+        btn_menu5.setOnClickListener(this);
     }
 
     @Override
@@ -58,6 +62,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             intent.putExtra("mode", 4);
             startActivity(intent);
             Log.d("intent", "4");
+        }else if(view == btn_menu5){
+
+            Intent intent = new Intent(this, ScenarioListActivity.class);
+            //intent.putExtra("mode", 4);
+            startActivity(intent);
+            Log.d("intent", "5");
         }
     }
 }
