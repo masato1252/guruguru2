@@ -24,4 +24,6 @@ public class PageLogNotify {
 
         this.listener = listener;
     }
+
+
 }

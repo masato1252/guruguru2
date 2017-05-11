@@ -33,13 +33,6 @@
             android:elevation="0dp"
             android:background="@color/dropdown_dark_divider_color">
 
-            <TextView
-                android:text="TextView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:id="@+id/wv_text_log1"
-                android:layout_weight="0.3" />
-
             <ListView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

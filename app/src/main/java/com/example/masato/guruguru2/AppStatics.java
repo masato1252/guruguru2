@@ -48,4 +48,17 @@ public class AppStatics extends Application {
         selectScenarioIndexes = new ArrayList<ScenarioIndex>();
     }
 
+    public Integer outputSleepTime(Integer num){
+        if(num==0){
+            return 0;
+        }else if(num==1){
+            return 2000;
+        }else if(num==2){
+            return 5000;
+        }else if(num==3){
+            return 10000;
+        }
+
+        return 0;
+    }
 }

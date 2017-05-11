@@ -174,8 +174,9 @@ public class ScenarioApi extends AsyncTask<Integer, Integer, Integer> {
                 List<Scene> sceneList = new ArrayList<Scene>();
 
                 jo = new JSONObject(jsons.get(i));
-                if(jo.getString("result")=="-1" || (jo.getString("result")=="1" && jo.getString("sceneNum")=="0")){
+                if(jo.getString("result").equals("-1") || (jo.getString("result").equals("1") && jo.getString("sceneNum").equals("0"))){
                     scenario.setValid(false);
+                    scenario.setScenarioIndex(scenarioIndexList.get(i));
                     scenarioList.add(scenario);
                     continue;
                 }
@@ -314,8 +315,15 @@ public class ScenarioApi extends AsyncTask<Integer, Integer, Integer> {
                         strP += ";";
                      }else{
                          //指定タグでさらに絞り込んでクリック
-                         strE += ".querySelector('" + ac.getTagName() + "').click();";
-                         strP += ".querySelector('" + ac.getTagName() + "');";
+                         if(ac.getDeep()<=1) {
+                             //一意に絞り込み
+                             strE += ".querySelector('" + ac.getTagName() + "').click();";
+                             strP += ".querySelector('" + ac.getTagName() + "');";
+                         }else if(ac.getDeep()>1) {
+                             //複数あり
+                             strE += ".querySelectorAll('" + ac.getTagName() + "')[" + (ac.getDeep()-1) + "].click();";
+                             strP += ".querySelectorAll('" + ac.getTagName() + "')[" + (ac.getDeep()-1) + "];";
+                         }
                      }
                  }
              }

@@ -1,6 +1,8 @@
 package com.example.masato.guruguru2;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Build;
@@ -8,6 +10,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.v4.widget.TextViewCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Display;
@@ -15,6 +18,7 @@ import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
 import android.webkit.ValueCallback;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -22,18 +26,20 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import org.xwalk.core.XWalkCookieManager;
+import org.xwalk.core.XWalkHitTestResult;
 import org.xwalk.core.XWalkResourceClient;
+import org.xwalk.core.XWalkSettings;
 import org.xwalk.core.XWalkUIClient;
 import org.xwalk.core.XWalkView;
 import org.xwalk.core.internal.XWalkClient;
-import org.xwalk.core.internal.XWalkCookieManager;
-import org.xwalk.core.internal.XWalkSettings;
 import org.xwalk.core.internal.extension.api.XWalkDisplayManager;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.chromium.base.ApplicationStatus.getApplicationContext;
+import static org.chromium.base.ContextUtils.getApplicationContext;
+
 
 /**
  * Created by masato on 2017/04/22.
@@ -42,11 +48,12 @@ import static org.chromium.base.ApplicationStatus.getApplicationContext;
 public class WebViewActivity extends AppCompatActivity implements PageLogListener, View.OnClickListener {
 
     private Integer mode = 0;
-    private TextView textLog1;
+    //private TextView textLog1;
     private Button btn_back;
     private PageLogNotify pageLogNotify;
     private XWalkView xWalkView;
     private CustomResourceClient customResourceClient;
+    private Activity activity;
 
     //ログの表示
     private ListView listView_log;
@@ -71,11 +78,13 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
         Intent intent = getIntent();
         mode = intent.getIntExtra("mode", 1);
 
+        activity = this;
+
 
         pageLogNotify = new PageLogNotify();
         pageLogNotify.setListener(this);
 
-        textLog1 = (TextView)this.findViewById(R.id.wv_text_log1);
+        //textLog1 = (TextView)this.findViewById(R.id.wv_text_log1);
         btn_back = (Button)this.findViewById(R.id.wv_btn_back);
         btn_back.setOnClickListener(this);
 
@@ -100,7 +109,7 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
 
                     jsList = result;
                     xWalkView.setUIClient(new CustomUIClient(xWalkView));
-                    customResourceClient = new CustomResourceClient(xWalkView, mode, pageLogNotify);
+                    customResourceClient = new CustomResourceClient(xWalkView, mode, pageLogNotify, activity);
                     xWalkView.setResourceClient(customResourceClient);
                     customResourceClient.setPerameter(jsList);
 
@@ -126,14 +135,20 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
                 public void callBack(Integer result) {
                     super.callBack(result);
 
-                    xWalkView.setUIClient(new CustomUIClient(xWalkView));
-                    customResourceClient = new CustomResourceClient(xWalkView, mode, pageLogNotify);
-                    xWalkView.setResourceClient(customResourceClient);
-                    Log.d("scene_url", scenarioList.get(0).getSceneList().get(0).getUrl());
-                    xWalkView.load(scenarioList.get(0).getSceneList().get(0).getUrl(), null);
+                    if(checkScenarioValid()) {
+                        //全シナリオが正常であれば、Webview実行開始
+                        xWalkView.setUIClient(new CustomUIClient(xWalkView));
+                        customResourceClient = new CustomResourceClient(xWalkView, mode, pageLogNotify, activity);
+                        customResourceClient.setScenarioList(scenarioList);
+                        xWalkView.setResourceClient(customResourceClient);
+                        Log.d("scene_url", scenarioList.get(0).getSceneList().get(0).getUrl());
+                        //xWalkView.load(scenarioList.get(0).getSceneList().get(0).getUrl(), null);
+                        xWalkView.loadUrl(scenarioList.get(0).getSceneList().get(0).getUrl());
+                    }
                 }
             });
             scenarioApi.execute();
+
         }
 
 //        XWalkCookieManager mCookieManager = new XWalkCookieManager();
@@ -197,6 +212,32 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
 
     }
 
+    //アクション以下が定義されていないシナリオがあれば実行中止＆アラート表示
+    private Boolean checkScenarioValid(){
+        String msg = "以下のシナリオは、詳細な命令が登録されていないため、実行を中止します。\n";
+        Boolean bool = true;
+        for(int i=0; i<scenarioList.size(); i++){
+            if(!scenarioList.get(i).getValid()){
+                msg += "・" + scenarioList.get(i).getScenarioIndex().getName() + "\n";
+                bool = false;
+            }
+        }
+
+        if(!bool){
+            AlertDialog.Builder alertDialog=new AlertDialog.Builder(this);
+            alertDialog.setTitle("エラー");      //タイトル設定
+            alertDialog.setMessage(msg);  //内容(メッセージ)設定
+            // OK(肯定的な)ボタンの設定
+            alertDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    // OKボタン押下時の処理
+                    finish();
+                }
+            });
+            alertDialog.show();
+        }
+        return bool;
+    }
 
     @Override
     public void dispLog(String str) {
@@ -215,7 +256,7 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
 
                 xWalkView.setUIClient(new CustomUIClient(xWalkView));
                 customResourceClient = null;
-                customResourceClient = new CustomResourceClient(xWalkView, mode, pageLogNotify);
+                customResourceClient = new CustomResourceClient(xWalkView, mode, pageLogNotify, activity);
                 xWalkView.setResourceClient(customResourceClient);
                 customResourceClient.setPerameter(jsList);
 
@@ -238,6 +279,7 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
 //            xWalkView.load("http://smt.docomo.ne.jp/", null);
 //        }
     }
+
 
     @Override
     protected void onDestroy() {
@@ -373,14 +415,24 @@ class CustomResourceClient extends XWalkResourceClient {
 
     private Integer mode = 0;
     private Integer pageCount = 0;
+
     private Integer sleepTime = 2000;
     private PageLogNotify pageLogNotify = null;
+    private Activity activity;
 
     private List<JSData> jsList = new ArrayList<JSData>();
     private List<String> execJs = new ArrayList<String>();  //loadに入力する実行スクリプト
     private List<String> checkJs = new ArrayList<String>(); //要素があるかどうかチェックするための絞り込みスクリプト
 
-    CustomResourceClient(XWalkView view, Integer mode, PageLogNotify pln){
+    //new
+    private List<Scenario> scenarioList;
+    private Integer scenarioCount = 0;
+    private Scenario scenario;
+    private ScenarioIndex scenarioIndex;
+    private Scene scene;
+    private Action action;
+
+    CustomResourceClient(XWalkView view, Integer mode, PageLogNotify pln, Activity act){
         super(view);
 
         //this.xWalkView = view;
@@ -388,17 +440,19 @@ class CustomResourceClient extends XWalkResourceClient {
         this.pageLogNotify = pln;
         pageCount = 0;
 
+        this.activity = act;
 
         xWalkCookieManager = new XWalkCookieManager();
         xWalkCookieManager.setAcceptCookie(true);
         xWalkCookieManager.setAcceptFileSchemeCookies(true);
         xWalkCookieManager.removeAllCookie();
 
-        xWalkSettings = new XWalkSettings(getApplicationContext(), 0, false);
+        //xWalkSettings = new XWalkSettings(getApplicationContext(), 0, false);
+        xWalkSettings = view.getSettings();
         xWalkSettings.setUserAgentString("Mozilla/5.0 (Linux; Android 4.1.1; Nexus 7 Build/JRO03S) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.166 Safari/535.19");
         xWalkSettings.setUseWideViewPort(true);
         xWalkSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
-        xWalkSettings.setImagesEnabled(true);
+        //xWalkSettings.setImagesEnabled(true);
 
 //        resetRunnable = new Runnable() {
 //            public void run() {
@@ -414,7 +468,24 @@ class CustomResourceClient extends XWalkResourceClient {
         pageCount = 0;
     }
 
-//    @Override
+    public void setScenarioList(List<Scenario> list){
+
+        this.scenarioList = list;
+        pageCount = 0;
+        scenarioCount = 0;
+    }
+
+
+    @Override
+    public boolean shouldOverrideUrlLoading(XWalkView view, String url) {
+
+        Log.d("url", url);
+        //XWalkHitTestResult a = view.getHitTestResult();
+        //Log.d("hit", a.getExtra().toString());
+        return super.shouldOverrideUrlLoading(view, url);
+    }
+
+    //    @Override
 //    public void onLoadStarted(XWalkView view, String url) {
 //        super.onLoadStarted(view, url);
 //
@@ -508,6 +579,69 @@ class CustomResourceClient extends XWalkResourceClient {
 
 
             }
+
+
+            if(mode==100){
+
+                pageCount++;
+
+                if(pageCount==1) {
+                    scenario = scenarioList.get(scenarioCount);
+                    scenarioIndex =  scenario.getScenarioIndex();
+                    pageLogNotify.sendLogsToActivity("シナリオ「" + scenarioIndex.getName() + "」実行開始");
+                }
+
+                if(pageCount <= scenario.getSceneList().size()){
+
+                    scene = scenario.getSceneList().get(pageCount-1);
+
+                    for(int i=0; i<scene.getActionList().size(); i++){
+
+                        action = scene.getActionList().get(i);
+
+                        for(int j=0; j<action.getExecJS().size(); j++){
+
+                            final List<String> execJS = action.getExecJS();
+                            final List<String> preJS = action.getPreJS();
+                            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+
+                                    for (int k = 0; k<execJS.size(); k++) {
+
+                                        String execStr = execJS.get(k);
+                                        String preStr = preJS.get(k);
+                                        view.evaluateJavascript(preStr, new CustomValueCallback(view, preStr, execStr, pageLogNotify));
+
+                                    }
+                                }
+                            }, AppStatics.getInstance().outputSleepTime(action.getSleep()));
+
+                        }
+                    }
+
+
+                }else{
+                    //シナリオ実行完了
+                    pageLogNotify.sendLogsToActivity("シナリオ「" + scenarioIndex.getName() + "」:OK");
+
+                    new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            xWalkCookieManager.removeAllCookie();
+                            if(scenarioCount == scenarioList.size()-1){
+                                scenarioCount = 0;
+                            }else{
+                                scenarioCount++;
+                            }
+                            pageCount = 0;
+                            view.loadUrl(scenarioList.get(scenarioCount).getSceneList().get(0).getUrl());
+                        }
+                    }, 10000);
+
+                }
+            }
+
 //                for(Integer i=0; i<execJs.size(); i++) {
 //
 //                    String exeStr = execJs.get(i);
@@ -700,12 +834,12 @@ class CustomValueCallback implements ValueCallback {
 
     @Override
     public void onReceiveValue(Object o) {
-        pageLogNotify.sendLogsToActivity("command: " + exeStr);
+        pageLogNotify.sendLogsToActivity("実行コマンド: " + exeStr);
         if (!o.toString().equals("null")) {
-            view.load(exeStr, "");
-            pageLogNotify.sendLogsToActivity("結果: OK");
+            view.loadUrl(exeStr);
+            pageLogNotify.sendLogsToActivity("タグ存在チェック: OK");
         }else{
-            pageLogNotify.sendLogsToActivity("結果: NG");
+            pageLogNotify.sendLogsToActivity("タグ存在チェック: NG");
         }
     }
 }
