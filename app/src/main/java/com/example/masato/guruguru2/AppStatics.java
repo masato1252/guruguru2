@@ -16,8 +16,8 @@ public class AppStatics extends Application {
     // アプリ内で共有の定数を定義
     //------------------------
 
-    public static final String URL_SCENARIO_LIST = "http://concierge-apps.lovepop.jp/guruguru/json_scenario.php";
-    public static final String URL_SCENARIO_CTR = "http://concierge-apps.lovepop.jp/guruguru/json_scenario_ctr.php";
+    public static final String URL_SCENARIO_LIST = "http://tk2-220-19891.vs.sakura.ne.jp/guruguru/json_scenario.php";
+    public static final String URL_SCENARIO_CTR = "http://tk2-220-19891.vs.sakura.ne.jp/guruguru/json_scenario_ctr2.php";
 
     //シナリオ選択用
     public List<Boolean> selectScenarios = new ArrayList<Boolean>();

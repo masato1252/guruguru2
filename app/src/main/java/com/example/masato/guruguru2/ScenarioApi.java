@@ -162,10 +162,12 @@ public class ScenarioApi extends AsyncTask<Integer, Integer, Integer> {
         JSONObject jo_scene = null;
         JSONObject jo_action = null;
         JSONObject jo_child = null;
+        JSONObject jo_check = null;
 
         JSONArray ja_scene = null;
         JSONArray ja_action = null;
         JSONArray ja_child = null;
+        JSONArray ja_check = null;
 
         try {
             for(int i=0; i<jsons.size(); i++){
@@ -190,62 +192,97 @@ public class ScenarioApi extends AsyncTask<Integer, Integer, Integer> {
                     Scene scene = new Scene();
                     jo_scene = ja_scene.getJSONObject(j);
                     List<Action> actionList = new ArrayList<Action>();
+                    List<SceneCheck> checkList = new ArrayList<SceneCheck>();
 
                     scene.setScene_id(jo_scene.getString("scene_id"));
                     scene.setNum(jo_scene.getInt("scene_num"));
                     scene.setUrl(jo_scene.getString("scene_url"));
                     scene.setMemo(jo_scene.getString("scene_memo"));
 
-                    ja_action = jo_scene.getJSONArray("action");
-                    for(int k=0; k<ja_action.length(); k++) {
+                    if(j!=(ja_scene.length()-1)) {
+                        ja_action = jo_scene.getJSONArray("action");
+                        for (int k = 0; k < ja_action.length(); k++) {
 
-                        Action action = new Action();
-                        jo_action = ja_action.getJSONObject(k);
-                        List<Object> childList = new ArrayList<Object>();
+                            Action action = new Action();
+                            jo_action = ja_action.getJSONObject(k);
+                            List<Object> childList = new ArrayList<Object>();
 
-                        action.setAction_id(jo_action.getString("action_id"));
-                        action.setNum(jo_action.getInt("action_num"));
-                        action.setMemo(jo_action.getString("action_memo"));
-                        action.setSleep(jo_action.getInt("sleep"));
-                        action.setType(jo_action.getInt("action_type"));
+                            action.setAction_id(jo_action.getString("action_id"));
+                            action.setNum(jo_action.getInt("action_num"));
+                            action.setMemo(jo_action.getString("action_memo"));
+                            action.setSleep(jo_action.getInt("sleep"));
+                            action.setType(jo_action.getInt("action_type"));
 
-                        ja_child = jo_action.getJSONArray("child");
-                        for(int l=0; l<ja_child.length(); l++){
+                            ja_child = jo_action.getJSONArray("child");
+                            for (int l = 0; l < ja_child.length(); l++) {
 
-                            if(action.getType()==0){
+                                if (action.getType() == 0) {
 
-                                ActionClick ac = new ActionClick();
-                                jo_child = ja_child.getJSONObject(l);
+                                    ActionClick ac = new ActionClick();
+                                    jo_child = ja_child.getJSONObject(l);
 
-                                ac.setNum(jo_child.getInt("target_num"));
-                                ac.setType(jo_child.getInt("click"));
-                                ac.setTagName(jo_child.getString("tagName"));
-                                ac.setAttName(jo_child.getString("attName"));
-                                ac.setAttValue(jo_child.getString("attValue"));
-                                ac.setDeep(jo_child.getInt("deep"));
+                                    ac.setNum(jo_child.getInt("target_num"));
+                                    ac.setType(jo_child.getInt("click"));
+                                    ac.setTagName(jo_child.getString("tagName"));
+                                    ac.setAttName(jo_child.getString("attName"));
+                                    ac.setAttValue(jo_child.getString("attValue"));
+                                    ac.setDeep(jo_child.getInt("deep"));
 
-                                childList.add(ac);
+                                    childList.add(ac);
 
-                            }else if(action.getType()==1){
+                                } else if (action.getType() == 1) {
 
-                                ActionInput ai = new ActionInput();
-                                jo_child = ja_child.getJSONObject(l);
+                                    ActionInput ai = new ActionInput();
+                                    jo_child = ja_child.getJSONObject(l);
 
-                                ai.setNum(jo_child.getInt("input_num"));
-                                ai.setAttValue(jo_child.getString("attValue"));
-                                ai.setInputValue(jo_child.getString("inputValue"));
+                                    ai.setNum(jo_child.getInt("input_num"));
+                                    ai.setAttValue(jo_child.getString("attValue"));
+                                    ai.setInputValue(jo_child.getString("inputValue"));
 
-                                childList.add(ai);
+                                    childList.add(ai);
+                                }
+
                             }
 
+                            action.setChildList(childList);
+                            makeVariableScript(action);
+                            actionList.add(action);
                         }
-
-                        action.setChildList(childList);
-                        makeVariableScript(action);
-                        actionList.add(action);
                     }
 
+                    scene.setCheck_valid(jo_scene.getInt("check_valid"));
+                    if(jo_scene.getInt("check_valid")==1){
 
+                        ja_check = jo_scene.getJSONArray("check");
+                        for(int k = 0; k < ja_check.length(); k++) {
+                            jo_check = ja_check.getJSONObject(k);
+
+                            SceneCheck check = new SceneCheck();
+                            check.setCheck_id(jo_check.getString("check_id"));
+                            check.setMemo(jo_check.getString("check_memo"));
+                            check.setCheck_type(jo_check.getInt("check_type"));
+                            if (jo_check.getInt("check_type") == 0) {
+
+                                check.setTagName(jo_check.getString("tagName"));
+                                check.setAttName(jo_check.getString("attName"));
+                                check.setAttValue(jo_check.getString("attValue"));
+                                check.setStr_type(jo_check.getInt("str_type"));
+                                check.setDeep(jo_check.getInt("deep"));
+                                check.setOrigin_str(jo_check.getString("origin_str"));
+                            } else if (jo_check.getInt("check_type") == 1) {
+
+                                check.setUrl(jo_check.getString("check_url"));
+                            }
+
+                            makeVariableScriptForCheck(check);
+                            checkList.add(check);
+                        }
+
+
+
+                    }
+
+                    scene.setCheckList(checkList);
                     scene.setActionList(actionList);
                     sceneList.add(scene);
                 }
@@ -357,6 +394,52 @@ public class ScenarioApi extends AsyncTask<Integer, Integer, Integer> {
         //Actionオブジェクトに実行スクリプトリストを登録
         action.setExecJS(execJS);
         action.setPreJS(preJS);
+    }
+
+
+    private void makeVariableScriptForCheck(SceneCheck check){
+
+        final String header = "javascript:";
+        final String header2 = "document";
+
+        final String footer = ".innerText";
+
+        String strE = header + header2;
+        //String strP = header2;
+        //String lastTagName = "";
+
+        if(check.getCheck_type()==0){
+
+            String str = "";
+
+            //通常
+            if(check.getDeep()<=1){
+                //一意に絞り込み
+                if (check.getAttName() == null || check.getAttName().isEmpty()) {
+                    //属性情報なし
+                    str += ".querySelector('" + check.getTagName() + "')";
+                } else {
+                    //属性情報あり
+                    str += ".querySelector('" + check.getTagName() + "[" + check.getAttName() + "=" + check.getAttValue() + "]')";
+                }
+            }else if(check.getDeep()>1){
+                //複数あり
+                if (check.getAttName() == null || check.getAttName().isEmpty()) {
+                    //属性情報なし
+                    str += ".querySelectorAll('" + check.getTagName() + "')[" + (check.getDeep()-1) + "]";
+                } else {
+                    //属性情報あり
+                    str += ".querySelectorAll('" + check.getTagName() + "[" + check.getAttName() + "=" + check.getAttValue() + "]')[" + (check.getDeep()-1) + "]";
+                }
+            }
+            strE += str;
+            //strP += str;
+
+            strE += footer;
+
+            check.setPreJS(strE);
+        }
+
     }
 
 

@@ -14,6 +14,25 @@ public class Scene {
     private String memo;
     private List<Action> actionList;
 
+    private Integer check_valid;
+    private List<SceneCheck> checkList;
+
+    public List<SceneCheck> getCheckList() {
+        return checkList;
+    }
+
+    public void setCheckList(List<SceneCheck> checkList) {
+        this.checkList = checkList;
+    }
+
+    public Integer getCheck_valid() {
+        return check_valid;
+    }
+
+    public void setCheck_valid(Integer check_valid) {
+        this.check_valid = check_valid;
+    }
+
 
     public Integer getNum() {
         return num;

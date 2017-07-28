@@ -15,6 +15,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Display;
 import android.view.View;
+import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
 import android.webkit.ValueCallback;
@@ -37,6 +38,7 @@ import org.xwalk.core.internal.extension.api.XWalkDisplayManager;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 import static org.chromium.base.ContextUtils.getApplicationContext;
 
@@ -74,6 +76,8 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_webview);
+
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         Intent intent = getIntent();
         mode = intent.getIntExtra("mode", 1);
@@ -431,11 +435,24 @@ class CustomResourceClient extends XWalkResourceClient {
     private ScenarioIndex scenarioIndex;
     private Scene scene;
     private Action action;
+    private SceneCheck check;
+
+    private Handler handler;
+    private Runnable runnable;
+
+    private Integer errorCount = 0;
+    private Boolean errorFlag = false;
+
+    private CustomResourceClient crc = this;
+
+    private XWalkView xWalkView;
+
+    private static CountDownLatch countDownLatch;
 
     CustomResourceClient(XWalkView view, Integer mode, PageLogNotify pln, Activity act){
         super(view);
 
-        //this.xWalkView = view;
+        this.xWalkView = view;
         this.mode = mode;
         this.pageLogNotify = pln;
         pageCount = 0;
@@ -460,6 +477,16 @@ class CustomResourceClient extends XWalkResourceClient {
 //                pageLogNotify.backToActivity();
 //            }
 //        };
+
+//        runnable = new Runnable() {
+//            @Override
+//            public void run() {
+//                action = scene.getActionList().get(i);
+//
+//                handler.postDelayed(this, REPEAT_INTERVAL);
+//            }
+//        };
+
     }
 
     public void setPerameter(List<JSData> js){
@@ -495,6 +522,52 @@ class CustomResourceClient extends XWalkResourceClient {
 //        }
 //        makeVariableScript();
 //    }
+
+    public void errorTrigger(){
+        //errorFlag = true;
+        errorCount++;
+        //errorFlag = false;
+
+        pageLogNotify.sendLogsToActivity("シナリオ「" + scenarioIndex.getName() + "」:NG "+errorCount+"回目");
+
+        if(errorCount<3){
+            //やり直し
+            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    xWalkCookieManager.removeAllCookie();
+                    pageCount = 0;
+                    xWalkView.loadUrl(scenarioList.get(scenarioCount).getSceneList().get(0).getUrl());
+
+                    countDownLatch.countDown();
+                }
+            }, 1000);
+
+        }else if(errorCount==3){
+            //エラー報告
+            pageLogNotify.sendLogsToActivity("エラーログ出力");
+
+            errorCount = 0;
+
+            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    xWalkCookieManager.removeAllCookie();
+                    if(scenarioCount == scenarioList.size()-1){
+                        scenarioCount = 0;
+                    }else{
+                        scenarioCount++;
+                    }
+                    pageCount = 0;
+                    xWalkView.loadUrl(scenarioList.get(scenarioCount).getSceneList().get(0).getUrl());
+
+                    countDownLatch.countDown();
+                }
+            }, 1000);
+        }
+
+    }
+
 
     @Override
     public void onLoadFinished(final XWalkView view, String url) {
@@ -542,7 +615,7 @@ class CustomResourceClient extends XWalkResourceClient {
 
                             String exeStr = execJs.get(i);
                             String checkStr = checkJs.get(i);
-                            view.evaluateJavascript(checkStr, new CustomValueCallback(view, checkStr, exeStr, pageLogNotify));
+                            view.evaluateJavascript(checkStr, new CustomValueCallback(crc, view, checkStr, exeStr, pageLogNotify));
 
                         }
                     }
@@ -591,35 +664,207 @@ class CustomResourceClient extends XWalkResourceClient {
                     pageLogNotify.sendLogsToActivity("シナリオ「" + scenarioIndex.getName() + "」実行開始");
                 }
 
+                final String url2 = url;
+
                 if(pageCount <= scenario.getSceneList().size()){
 
                     scene = scenario.getSceneList().get(pageCount-1);
 
-                    for(int i=0; i<scene.getActionList().size(); i++){
 
-                        action = scene.getActionList().get(i);
+                    //Check
+                    for (int i = 0; i < scene.getCheckList().size(); i++) {
 
-                        for(int j=0; j<action.getExecJS().size(); j++){
+                        check = scene.getCheckList().get(i);
+                        countDownLatch = new CountDownLatch(scene.getCheckList().size()-1);
+                        new Thread() {
+                            public void run() {
 
-                            final List<String> execJS = action.getExecJS();
-                            final List<String> preJS = action.getPreJS();
-                            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                                @Override
-                                public void run() {
+                                if (check.getCheck_type() == 0) {
 
-                                    for (int k = 0; k<execJS.size(); k++) {
+                                    new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                                        @Override
+                                        public void run() {
 
-                                        String execStr = execJS.get(k);
-                                        String preStr = preJS.get(k);
-                                        view.evaluateJavascript(preStr, new CustomValueCallback(view, preStr, execStr, pageLogNotify));
+                                            String preStr = check.getPreJS();
+                                            //                                              //String preStr = preJS.get(k);
+                                            //view.evaluateJavascript("javascript:document.querySelector('.donation-inner').innerText;", new CustomValueCallback(view, "javascript:document.querySelector('.donation-inner').innerText;", "javascript:document.querySelector('.donation-inner').innerText;", pageLogNotify));
+                                            view.evaluateJavascript(preStr, new CheckValueCallback(crc, view, check, pageLogNotify));
+                                            countDownLatch.countDown();
+                                        }
+                                    }, AppStatics.getInstance().outputSleepTime(3));
 
-                                    }
+                                }else if(check.getCheck_type() == 1){
+
+                                    new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                                        @Override
+                                        public void run() {
+
+                                            if(url2.startsWith(check.getUrl())){
+                                                pageLogNotify.sendLogsToActivity("URL前方一致チェック: OK");
+                                                pageLogNotify.sendLogsToActivity("URL 現在位置: " + url2);
+                                                pageLogNotify.sendLogsToActivity("URL 比較対象: " + check.getUrl());
+                                                countDownLatch.countDown();
+                                            }else{
+                                                pageLogNotify.sendLogsToActivity("URL前方一致チェック: NG");
+                                                pageLogNotify.sendLogsToActivity("URL 現在位置: " + url2);
+                                                pageLogNotify.sendLogsToActivity("URL 比較対象: " + check.getUrl());
+                                                errorTrigger();
+                                            }
+
+                                        }
+                                    }, AppStatics.getInstance().outputSleepTime(1));
                                 }
-                            }, AppStatics.getInstance().outputSleepTime(action.getSleep()));
 
-                        }
+
+
+
+                            }
+                        }.start();
+
+
                     }
 
+                    try {
+                        countDownLatch.await();
+
+                    }catch(Exception e){
+
+                    }
+
+
+                    //Action
+                    for(int i=0; i<scene.getActionList().size(); i++){
+
+                        countDownLatch = new CountDownLatch(scene.getActionList().size()-1);
+                        action = scene.getActionList().get(i);
+                        new Thread() {
+                            public void run() {
+
+                                for(int j=0; j<action.getExecJS().size(); j++){
+
+                                    final List<String> execJS = action.getExecJS();
+                                    final List<String> preJS = action.getPreJS();
+                                    //new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                                    //    @Override
+                                    //    public void run() {
+
+                                            for (int k = 0; k<execJS.size(); k++) {
+
+                                                final String execStr = execJS.get(k);
+                                                final String preStr = preJS.get(k);
+
+                                                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                                                    @Override
+                                                    public void run() {
+
+        //                                              //String execStr = execJS.get(k);
+        //                                              //String preStr = preJS.get(k);
+                                                        //view.evaluateJavascript("javascript:document.querySelector('.donation-inner').innerText;", new CustomValueCallback(view, "javascript:document.querySelector('.donation-inner').innerText;", "javascript:document.querySelector('.donation-inner').innerText;", pageLogNotify));
+                                                        view.evaluateJavascript(preStr, new CustomValueCallback(crc, view, preStr, execStr, pageLogNotify));
+                                                        countDownLatch.countDown();
+                                                    }
+                                                }, AppStatics.getInstance().outputSleepTime(action.getSleep()));
+                                            }
+
+
+                                       // }
+                                    //}, AppStatics.getInstance().outputSleepTime(action.getSleep()));
+
+
+
+                                }
+
+
+                             }
+
+                        }.start();
+                    }
+
+
+                    try {
+                        countDownLatch.await();
+
+                    }catch(Exception e){
+
+                    }
+
+//                    if(errorFlag){
+//                        errorCount++;
+//                        errorFlag = false;
+//
+//                        pageLogNotify.sendLogsToActivity("シナリオ「" + scenarioIndex.getName() + "」:NG "+errorCount+"回目");
+//
+//                        if(errorCount<3){
+//                            //やり直し
+//                            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+//                                @Override
+//                                public void run() {
+//                                    xWalkCookieManager.removeAllCookie();
+//                                    pageCount = 0;
+//                                    view.loadUrl(scenarioList.get(scenarioCount).getSceneList().get(0).getUrl());
+//                                }
+//                            }, 10000);
+//
+//                        }else if(errorCount==3){
+//                            //エラー報告
+//                            pageLogNotify.sendLogsToActivity("エラーログ出力");
+//
+//                            errorCount = 0;
+//
+//                            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+//                                @Override
+//                                public void run() {
+//                                    xWalkCookieManager.removeAllCookie();
+//                                    if(scenarioCount == scenarioList.size()-1){
+//                                        scenarioCount = 0;
+//                                    }else{
+//                                        scenarioCount++;
+//                                    }
+//                                    pageCount = 0;
+//                                    view.loadUrl(scenarioList.get(scenarioCount).getSceneList().get(0).getUrl());
+//                                }
+//                            }, 10000);
+//                        }
+//
+                    if(pageCount == scenario.getSceneList().size()){
+
+                        countDownLatch = new CountDownLatch(1);
+                        new Thread() {
+                            public void run() {
+
+
+                                //最終ページ
+                                pageLogNotify.sendLogsToActivity("シナリオ「" + scenarioIndex.getName() + "」:OK");
+                                errorCount = 0;
+                                errorFlag = false;
+
+                                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        xWalkCookieManager.removeAllCookie();
+                                        if (scenarioCount == scenarioList.size() - 1) {
+                                            scenarioCount = 0;
+                                        } else {
+                                            scenarioCount++;
+                                        }
+                                        pageCount = 0;
+                                        view.loadUrl(scenarioList.get(scenarioCount).getSceneList().get(0).getUrl());
+
+                                        countDownLatch.countDown();
+                                    }
+                                }, 10000);
+
+
+                            }
+                        }.start();
+                    }
+
+                    try {
+                        countDownLatch.await();
+
+                    }catch(Exception e){
+
+                    }
 
                 }else{
                     //シナリオ実行完了
@@ -820,12 +1065,14 @@ class CustomResourceClient extends XWalkResourceClient {
 
 class CustomValueCallback implements ValueCallback {
 
+    CustomResourceClient crc;
     XWalkView view;
     PageLogNotify pageLogNotify;
     String exeStr;
     String checkStr;
 
-    public CustomValueCallback(XWalkView view, String checkStr, String exeStr, PageLogNotify pln){
+    public CustomValueCallback(CustomResourceClient crc, XWalkView view, String checkStr, String exeStr, PageLogNotify pln){
+        this.crc = crc;
         this.view = view;
         this.checkStr = checkStr;
         this.exeStr = exeStr;
@@ -834,13 +1081,93 @@ class CustomValueCallback implements ValueCallback {
 
     @Override
     public void onReceiveValue(Object o) {
-        pageLogNotify.sendLogsToActivity("実行コマンド: " + exeStr);
+        pageLogNotify.sendLogsToActivity("アクションコマンド: " + exeStr);
         if (!o.toString().equals("null")) {
             view.loadUrl(exeStr);
-            pageLogNotify.sendLogsToActivity("タグ存在チェック: OK");
+            Log.d("returnValue", o.toString());
+            pageLogNotify.sendLogsToActivity("アクション可否: OK");
         }else{
-            pageLogNotify.sendLogsToActivity("タグ存在チェック: NG");
+            pageLogNotify.sendLogsToActivity("アクション可否: NG");
+            crc.errorTrigger();
         }
+
+
+    }
+}
+
+
+class CheckValueCallback implements ValueCallback {
+
+    CustomResourceClient crc;
+    XWalkView view;
+    PageLogNotify pageLogNotify;
+    SceneCheck check;
+
+    public CheckValueCallback(CustomResourceClient crc, XWalkView view, SceneCheck check, PageLogNotify pln){
+        this.crc = crc;
+        this.view = view;
+        this.pageLogNotify = pln;
+        this.check = check;
+    }
+
+    @Override
+    public void onReceiveValue(Object o) {
+
+        Log.d("returnValue", o.toString());
+        if(check.getStr_type()==0){
+            //タグ有無のみ
+            pageLogNotify.sendLogsToActivity("指定タグ存在チェック: " + check.getPreJS());
+            if (!o.toString().equals("null")) {
+                pageLogNotify.sendLogsToActivity("結果: OK");
+            }else{
+                pageLogNotify.sendLogsToActivity("結果: NG");
+                crc.errorTrigger();
+            }
+        }else if(check.getStr_type()==1){
+            //固定文言
+            pageLogNotify.sendLogsToActivity("固定文言チェック: " + check.getPreJS());
+            String str = o.toString().replace("\"", "");
+            if(str.equals(check.getOrigin_str())){
+                pageLogNotify.sendLogsToActivity("結果: OK");
+                pageLogNotify.sendLogsToActivity("文言: " + o.toString());
+            }else{
+                pageLogNotify.sendLogsToActivity("結果: NG");
+                crc.errorTrigger();
+            }
+//            if (!o.toString().equals("null") && o.toString().equals(check.getOrigin_str())) {
+//                pageLogNotify.sendLogsToActivity("結果: OK");
+//                pageLogNotify.sendLogsToActivity("文言: " + o.toString());
+//            }else{
+//                pageLogNotify.sendLogsToActivity("結果: NG");
+//            }
+        }else if(check.getStr_type()==2){
+            //数値 1000
+            pageLogNotify.sendLogsToActivity("数値(桁区切りなし)チェック: " + check.getPreJS());
+            String str = o.toString().replace("\"", "");
+            try {
+                Integer.parseInt(str);
+                pageLogNotify.sendLogsToActivity("結果: OK");
+                pageLogNotify.sendLogsToActivity("数値: " + str);
+            } catch (NumberFormatException e) {
+                pageLogNotify.sendLogsToActivity("結果: NG");
+                crc.errorTrigger();
+            }
+
+        }else if(check.getStr_type()==3){
+            //数値 1,000
+            pageLogNotify.sendLogsToActivity("数値(桁区切りあり)チェック: " + check.getPreJS());
+            String str = o.toString().replace("\"", "");
+            try {
+                str = str.replace(",", "");
+                Integer.parseInt(str);
+                pageLogNotify.sendLogsToActivity("結果: OK");
+                pageLogNotify.sendLogsToActivity("数値: " + o.toString());
+            } catch (NumberFormatException e) {
+                pageLogNotify.sendLogsToActivity("結果: NG");
+                crc.errorTrigger();
+            }
+        }
+
     }
 }
 
