@@ -113,6 +113,13 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
 
                     if(checkScenarioValid()) {
                         //全シナリオが正常であれば、Webview実行開始
+
+                        //オペレーションID生成
+                        AppStatics.getInstance().makeOperationId();
+
+                        //オペレーションログの送信
+
+
                         xWalkView.setUIClient(new CustomUIClient(xWalkView));
                         customResourceClient = new CustomResourceClient(xWalkView, mode, pageLogNotify, activity);
                         customResourceClient.setScenarioList(scenarioList);
