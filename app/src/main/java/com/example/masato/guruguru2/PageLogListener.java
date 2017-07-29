@@ -10,6 +10,6 @@ public interface PageLogListener extends EventListener{
 
     void dispLog(String str);
     
-    void completeTest();
+//    void completeTest();
 
 }
