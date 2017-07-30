@@ -26,25 +26,26 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/wv_layout_footer"
             android:layout_width="match_parent"
-            android:layout_weight="0.5"
             android:layout_height="match_parent"
-            android:orientation="vertical"
+            android:layout_weight="0.5"
+            android:background="@color/dropdown_dark_divider_color"
             android:elevation="0dp"
-            android:background="@color/dropdown_dark_divider_color">
+            android:orientation="vertical">
 
             <ListView
+                android:id="@+id/wv_listview_log"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="0.6"
-                android:id="@+id/wv_listview_log" />
+                android:layout_weight="0.6" />
 
             <Button
-                android:text="停止"
+                android:id="@+id/wv_btn_back"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:id="@+id/wv_btn_back"
-                android:layout_weight="0.1" />
+                android:layout_weight="0.1"
+                android:text="停止" />
         </LinearLayout>
 
     </LinearLayout>

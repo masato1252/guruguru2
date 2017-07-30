@@ -5,9 +5,11 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.net.http.SslError;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.v4.widget.TextViewCompat;
@@ -15,7 +17,10 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Display;
+import android.view.SurfaceView;
+import android.view.TextureView;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
@@ -25,10 +30,12 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 
 import org.xwalk.core.XWalkCookieManager;
+import org.xwalk.core.XWalkGetBitmapCallback;
 import org.xwalk.core.XWalkHitTestResult;
 import org.xwalk.core.XWalkResourceClient;
 import org.xwalk.core.XWalkSettings;
@@ -39,11 +46,14 @@ import org.xwalk.core.XWalkWebResourceResponse;
 import org.xwalk.core.internal.XWalkClient;
 import org.xwalk.core.internal.extension.api.XWalkDisplayManager;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
+import static android.R.attr.bitmap;
 import static org.chromium.base.ContextUtils.getApplicationContext;
 
 
@@ -65,6 +75,7 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
     private ListView listView_log;
     private List<String> logList;
     private LogListAdapter logListAdapter;
+    private LinearLayout layout_footer;
 
     //シナリオリスト
     private List<Scenario> scenarioList;
@@ -91,13 +102,18 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
         btn_back = (Button)this.findViewById(R.id.wv_btn_back);
         btn_back.setOnClickListener(this);
 
+        layout_footer = (LinearLayout) this.findViewById(R.id.wv_layout_footer);
+        //layout_footer.setVisibility(View.GONE);
+
         logList = new ArrayList<String>();
         logListAdapter = new LogListAdapter(this, 0, logList);
         listView_log = (ListView) this.findViewById(R.id.wv_listview_log);
         listView_log.setAdapter(logListAdapter);
 
+
         xWalkView = (XWalkView) findViewById(R.id.web_webview);
         xWalkView.setEnabled(false);
+        //xWalkView.setDrawingCacheEnabled(true);
 
 
         if(mode==100){
@@ -136,6 +152,7 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
                                     Log.d("scene_url", scenarioList.get(0).getSceneList().get(0).getUrl());
                                     //xWalkView.load(scenarioList.get(0).getSceneList().get(0).getUrl(), null);
                                     xWalkView.loadUrl(scenarioList.get(0).getSceneList().get(0).getUrl());
+                                    CustomUIClient c = new CustomUIClient(xWalkView);
 
                                 }else{
                                     //送信失敗
@@ -347,6 +364,7 @@ class CustomResourceClient extends XWalkResourceClient {
         xWalkSettings.setUserAgentString("Mozilla/5.0 (Linux; Android 4.1.1; Nexus 7 Build/JRO03S) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.166 Safari/535.19");
         xWalkSettings.setUseWideViewPort(true);
         xWalkSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+
         //xWalkSettings.setImagesEnabled(true);
 
         checkRunnable = new Runnable() {
@@ -675,6 +693,14 @@ class CustomResourceClient extends XWalkResourceClient {
 
     }
 
+    private void captureContent() {
+
+        XWalkGetBitmapCallbackImpl mXWalkGetBitmapCallback = new XWalkGetBitmapCallbackImpl();
+        xWalkView.captureBitmapAsync(mXWalkGetBitmapCallback);
+
+    }
+
+
     @Override
     public void onReceivedSslError(XWalkView view, ValueCallback<Boolean> callback, SslError error) {
         super.onReceivedSslError(view, callback, error);
@@ -695,6 +721,10 @@ class CustomResourceClient extends XWalkResourceClient {
         }
 
         nowURL = url;
+
+        //captureContent();
+
+
 
         if (pageCount <= scenario.getSceneList().size()) {
 
@@ -774,6 +804,7 @@ class CustomResourceClient extends XWalkResourceClient {
 
         }
     }
+
 
 
     class CheckValueCallback implements ValueCallback {
@@ -856,7 +887,8 @@ class CustomResourceClient extends XWalkResourceClient {
 
 }
 
-    class CustomUIClient extends XWalkUIClient {
+
+class CustomUIClient extends XWalkUIClient {
 
 
         CustomUIClient(XWalkView view) {
@@ -865,6 +897,69 @@ class CustomResourceClient extends XWalkResourceClient {
         }
 
 
+
+}
+
+
+//class CustomXwalkView extends XWalkView {
+//
+//    public CustomXwalkView(Context context) {
+//        super(context);
+//    }
+//
+//    @Override
+//    protected void onDraw(Canvas canvas) {
+//        super.onDraw(canvas);
+//
+//        final String path = Environment.getExternalStorageDirectory().toString() + "/temp/thumb.jpg";
+//        try {
+//            if(this.getContentHeight() != 0){
+//                FileOutputStream fos = null;
+//                fos = new FileOutputStream(path);
+//                if(fos != null){
+//                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, fos );
+//                    fos.close();
+//                }
+//            }
+//        }catch(Exception e){
+//            e.printStackTrace();
+//        }
+//    }
+//
+//}
+
+class XWalkGetBitmapCallbackImpl extends XWalkGetBitmapCallback {
+
+    public XWalkGetBitmapCallbackImpl() {
+        super();
+    }
+    //Note: onFinishGetBitmap happens at the same thread as captureBitmapAsync, usually the UI thread.
+
+
+    @Override
+    public void onFinishGetBitmap(Bitmap bitmap, int response) {
+        //if response == 0, save this bitmap into a jpg file //otherwise errors. }
+        if(response == 0){
+            FileOutputStream fos = null;
+            try {
+                //String path = Environment.getExternalStorageDirectory().toString() + "/test.jpg";
+                String path =  Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).toString() + "/capture.jpg";
+                fos = new FileOutputStream(path);
+                if (fos != null) {
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, fos);
+                    fos.close();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                Log.d("cap","cap");
+                try {
+                    if (fos != null)
+                        fos.close();
+                } catch (IOException e) {
+                }
+            }
+        }
     }
 
-
+}
