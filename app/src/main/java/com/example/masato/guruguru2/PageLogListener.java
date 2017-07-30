@@ -9,6 +9,10 @@ import java.util.EventListener;
 public interface PageLogListener extends EventListener{
 
     void dispLog(String str);
+
+    void sendLogHeartBeat();
+
+    void faultSendErrorLog();
     
 //    void completeTest();
 

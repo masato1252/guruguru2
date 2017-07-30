@@ -14,13 +14,25 @@ public class PageLogNotify {
         listener.dispLog(str);
     }
 
+    //監視のハートビート
+    public void sendLogHeartBeat() {
+
+        listener.sendLogHeartBeat();
+    }
+
+    //エラーログ送信エラー時にダイアログ表示
+    public void faultSendErrorLog() {
+
+        listener.faultSendErrorLog();
+    }
+
 //    public void backToActivity() {
 //
 //        listener.completeTest();
 //    }
 
     // リスナーをセットする
-    public void setListener(PageLogListener listener){
+    public void setListener(PageLogListener listener) {
 
         this.listener = listener;
     }

@@ -17,6 +17,7 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -24,7 +25,8 @@ import java.util.List;
  *
  * mode
  * 1: Operation Log
- * 2: Error Log
+ * 2: Operation Heart Beat
+ * 3: Error Log
  */
 
 public class LogApi extends AsyncTask<Integer, Integer, Integer> {
@@ -35,14 +37,18 @@ public class LogApi extends AsyncTask<Integer, Integer, Integer> {
 
     private Integer mode = 0;
     private List<String> params;
-    private List<ScenarioIndex> scenarioIndices;
+    private List<Scenario> scenarios;
 
-    private LogApi(Activity act, Integer mode, List<String> params, List<ScenarioIndex> scenarios) {
+    public LogApi(Activity act, Integer mode, List<String> params, List<Scenario> scenarios) {
 
         this.activity = act;
         this.mode = mode;
-        this.params = params;
-        this.scenarioIndices = scenarios;
+        if(params == null){
+            this.params = new ArrayList<String>();
+        }else{
+            this.params = params;
+        }
+        this.scenarios = scenarios;
     }
 
     //------------------------
@@ -56,6 +62,8 @@ public class LogApi extends AsyncTask<Integer, Integer, Integer> {
         if(mode==1){
             dialog.setMessage("サーバへ稼働情報を送信中...");
         }else if(mode==2){
+            dialog.setMessage("サーバへ稼働情報を送信中...");
+        }else if(mode==3){
             dialog.setMessage("サーバへエラーログを送信中...");
         }
         dialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
@@ -76,6 +84,18 @@ public class LogApi extends AsyncTask<Integer, Integer, Integer> {
                 return -1;
             }
         }else if(mode==2){
+            if( checkPostValid(postData()) ){
+                return 1;
+            }else{
+                return -1;
+            }
+
+        }else if(mode==3){
+            if( checkPostValid(postData()) ){
+                return 1;
+            }else{
+                return -1;
+            }
 
         }
 
@@ -99,7 +119,7 @@ public class LogApi extends AsyncTask<Integer, Integer, Integer> {
         dialog.dismiss();
 
         //scListAdapter.notifyDataSetChanged();
-        callbacktask.CallBack(result);
+        callbacktask.callBack(result);
     }
 
 
@@ -118,6 +138,8 @@ public class LogApi extends AsyncTask<Integer, Integer, Integer> {
             if(mode==1){
                 url = new URL(AppStatics.URL_SEND_OPERATION_LOG);
             }else if(mode==2){
+                url = new URL(AppStatics.URL_SEND_OPERATION_BEAT);
+            }else if(mode==3){
                 url = new URL(AppStatics.URL_SEND_ERROR_LOG);
             }
 
@@ -129,6 +151,10 @@ public class LogApi extends AsyncTask<Integer, Integer, Integer> {
             //パラメータ生成
             if(mode==1){
                 makeOperationLogParams();
+            }else if(mode==2){
+                makeOperationHeartBeatParams();
+            }else if(mode==3){
+
             }
 
             String parameter = "";
@@ -191,10 +217,16 @@ public class LogApi extends AsyncTask<Integer, Integer, Integer> {
         setParameter("network_type", AppStatics.getInstance().getNetworkType().toString());
 
         Integer c = 1;
-        for(ScenarioIndex scenario : scenarioIndices){
-            setParameter("scenario"+c, scenario.getId());
+        for(Scenario scenario : scenarios){
+            setParameter("scenario"+c, scenario.getScenarioIndex().getId());
             c++;
         }
+    }
+
+    //ハートビート用のパラメータ生成
+    private void makeOperationHeartBeatParams() {
+
+        setParameter("operation_id", AppStatics.getInstance().getOperationId());
     }
 
     //返却されたjsonよりresultコードをチェック
@@ -208,14 +240,16 @@ public class LogApi extends AsyncTask<Integer, Integer, Integer> {
 
             if(state==1){
                 //送信成功
+                Log.d("Post", "OK");
                 return true;
             }else{
                 //送信失敗
+                Log.d("Fault Cause", jo.getString("cause"));
                 return false;
             }
 
         } catch (JSONException e) {
-            Log.d("jsonConvertError", "jsonExceprion");
+            Log.d("jsonConvertError", "jsonExceprion:"+e);
             return false;
         }
     }
@@ -229,7 +263,7 @@ public class LogApi extends AsyncTask<Integer, Integer, Integer> {
      * コールバック用のstaticなclass
      */
     public static class CallBackTask {
-        public void CallBack(Integer result) {
+        public void callBack(Integer result) {
         }
     }
 

@@ -1,6 +1,7 @@
 package com.example.masato.guruguru2;
 
 import android.app.Application;
+import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.util.SparseBooleanArray;
@@ -20,12 +21,13 @@ public class AppStatics extends Application {
     //------------------------
 
     //GET 参照系
-    public static final String URL_SCENARIO_LIST = "http://tk2-220-19891.vs.sakura.ne.jp/guruguru/json_scenario.php";
-    public static final String URL_SCENARIO_CTR = "http://tk2-220-19891.vs.sakura.ne.jp/guruguru/json_scenario_ctr2.php";
+    public static final String URL_SCENARIO_LIST = "http://tk2-220-19891.vs.sakura.ne.jp/guruguru/api/json_scenario.php";
+    public static final String URL_SCENARIO_CTR = "http://tk2-220-19891.vs.sakura.ne.jp/guruguru/api/json_scenario_ctr2.php";
 
     //POST 更新系
-    public static final String URL_SEND_OPERATION_LOG = "http://tk2-220-19891.vs.sakura.ne.jp/guruguru/regist_operation_log.php";
-    public static final String URL_SEND_ERROR_LOG = "http://tk2-220-19891.vs.sakura.ne.jp/guruguru/regist_error_log.php";
+    public static final String URL_SEND_OPERATION_LOG = "http://tk2-220-19891.vs.sakura.ne.jp/guruguru/api/regist_operation_log.php";
+    public static final String URL_SEND_OPERATION_BEAT = "http://tk2-220-19891.vs.sakura.ne.jp/guruguru/api/regist_operation_beat.php";
+    public static final String URL_SEND_ERROR_LOG = "http://tk2-220-19891.vs.sakura.ne.jp/guruguru/api/regist_error_log.php";
 
     //シナリオ選択用
     public List<Boolean> selectScenarios = new ArrayList<Boolean>();
@@ -101,10 +103,9 @@ public class AppStatics extends Application {
 
 
     //ネットワーク接続種別の取得
-    public void modifyNetworkType() {
+    public void modifyNetworkType(Context context) {
 
-        ConnectivityManager connectivityManager =
-                (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+        ConnectivityManager connectivityManager = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
 
         NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
         if(networkInfo != null && networkInfo.getType() == ConnectivityManager.TYPE_WIFI) {
