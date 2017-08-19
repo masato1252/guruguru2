@@ -22,6 +22,7 @@
         </activity>
         <activity android:name=".WebViewActivity" />
         <activity android:name=".ScenarioListActivity" />
+        <activity android:name=".HtmlTagPickerActivity" />
     </application>
 
 </manifest>
