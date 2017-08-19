@@ -8,9 +8,9 @@ public class PickerNotify {
 
     private PickerListener listener;
 
-    void sendTags(String tags){
+    void sendTags(String tags, String url, String title){
 
-        listener.sendTags(tags);
+        listener.sendTags(tags, url, title);
     }
 
     void nofityUrl(String url){

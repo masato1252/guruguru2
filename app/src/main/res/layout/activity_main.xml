@@ -31,10 +31,16 @@
                 android:id="@+id/main_title" />
 
             <Button
-                android:text="シナリオ選択画面"
+                android:id="@+id/main_btn_5"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:id="@+id/main_btn_5" />
+                android:text="監視実行" />
+
+            <Button
+                android:id="@+id/btn_main_tag"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="HTMLタグピッカー" />
         </LinearLayout>
 
     </LinearLayout>

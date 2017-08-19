@@ -6,7 +6,7 @@ package com.example.masato.guruguru2;
 
 public interface PickerListener {
 
-    void sendTags(String tags);
+    void sendTags(String tags, String url, String title);
 
     void notifyUrl(String url);
 

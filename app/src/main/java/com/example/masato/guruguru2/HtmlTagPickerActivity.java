@@ -1,7 +1,11 @@
 package com.example.masato.guruguru2;
 
+import android.app.Activity;
+import android.content.DialogInterface;
 import android.os.Bundle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.webkit.ValueCallback;
 import android.widget.Button;
@@ -25,11 +29,14 @@ public class HtmlTagPickerActivity extends AppCompatActivity implements PickerLi
     private PickerResourceClient pickerResourceClient;
     private PickerNotify pickerNotify;
     private String firstUrl = "http://google.com/";
+    private Activity activity;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tag_picker);
+
+        this.activity = this;
 
         btn_go = (Button)this.findViewById(R.id.btn_pick_go);
         btn_go.setOnClickListener(this);
@@ -51,7 +58,10 @@ public class HtmlTagPickerActivity extends AppCompatActivity implements PickerLi
         xWalkView = (XWalkView) findViewById(R.id.web_tagPicker);
         xWalkView.setEnabled(false);
 
+        pickerResourceClient = new PickerResourceClient(xWalkView, this, pickerNotify);
+        xWalkView.setResourceClient(pickerResourceClient);
         xWalkView.setUIClient(new PickerUIClient(xWalkView));
+        xWalkView.loadUrl(firstUrl);
     }
 
 
@@ -75,18 +85,58 @@ public class HtmlTagPickerActivity extends AppCompatActivity implements PickerLi
             xWalkView.getNavigationHistory().navigate(XWalkNavigationHistory.Direction.FORWARD, 0);
 
         }else if(view==btn_pick){
-
+            pickerResourceClient.getAllTags();
         }
     }
 
     @Override
-    public void sendTags(String tags) {
+    public void sendTags(String tags, String url, String title) {
 
+        PickerApi pickerApi = new PickerApi(this, 1, tags, url, title);
+        pickerApi.setOnCallBack(new PickerApi.CallBackTask() {
+
+            @Override
+            public void callBack(Integer result) {
+                super.callBack(result);
+
+                if(result == 1){
+                    //送信完了
+                    AlertDialog.Builder alertDialog=new AlertDialog.Builder(activity);
+                    alertDialog.setTitle("エラー");      //タイトル設定
+                    alertDialog.setMessage("サーバへHTMLタグ");  //内容(メッセージ)設定
+                    // OK(肯定的な)ボタンの設定
+                    alertDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            // OKボタン押下時の処理
+                            //finish();
+                        }
+                    });
+                    alertDialog.show();
+
+                }else{
+                    //送信失敗
+                    AlertDialog.Builder alertDialog=new AlertDialog.Builder(activity);
+                    alertDialog.setTitle("エラー");      //タイトル設定
+                    alertDialog.setMessage("サーバへHTMLタグを送信できませんでした。");  //内容(メッセージ)設定
+                    // OK(肯定的な)ボタンの設定
+                    alertDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            // OKボタン押下時の処理
+                            //finish();
+                        }
+                    });
+                    alertDialog.show();
+                }
+
+            }
+        });
+        pickerApi.execute();
     }
 
     @Override
     public void notifyUrl(String url) {
 
+        et_url.setText(url);
     }
 }
 
@@ -95,24 +145,45 @@ class PickerResourceClient extends XWalkResourceClient {
 
     private XWalkView xWalkView;
     private PickerNotify pickerNotify;
+    private Activity activity;
 
+    private Boolean pickValid = false;
     private String jsCode = "document.querySelector(\"body\").innerText";
 
-    public PickerResourceClient(XWalkView view, PickerNotify pn) {
+    private String url;
+    private String title;
+
+    public PickerResourceClient(XWalkView view, Activity activity, PickerNotify pn) {
         super(view);
 
         this.xWalkView = view;
+        this.activity = activity;
         this.pickerNotify = pn;
+    }
+
+    @Override
+    public void onLoadStarted(XWalkView view, String url) {
+        super.onLoadStarted(view, url);
+
+        pickValid = false;
+        pickerNotify.nofityUrl(url);
     }
 
     @Override
     public void onLoadFinished(XWalkView view, String url) {
         super.onLoadFinished(view, url);
 
+        pickValid = true;
+        this.url = url;
+        this.title = xWalkView.getTitle();
+
     }
 
     public void getAllTags(){
-        //xWalkView.evaluateJavascript(jsCode, new PickerValueCallBack());
+
+        if(pickValid) {
+            xWalkView.evaluateJavascript(jsCode, new PickerValueCallBack(this, pickerNotify, url, title));
+        }
     }
 
 
@@ -120,15 +191,19 @@ class PickerResourceClient extends XWalkResourceClient {
 
         PickerResourceClient pickerResourceClient;
         PickerNotify pickerNotify;
+        String url;
+        String title;
 
-        public PickerValueCallBack(PickerResourceClient prc, PickerNotify pn){
+        public PickerValueCallBack(PickerResourceClient prc, PickerNotify pn, String url, String title){
             this.pickerResourceClient = prc;
             this.pickerNotify = pn;
+            this.url = url;
+            this.title = title;
         }
 
         @Override
         public void onReceiveValue(Object o) {
-            pickerNotify.sendTags(o.toString());
+            pickerNotify.sendTags(o.toString(), url, title);
         }
     }
 }

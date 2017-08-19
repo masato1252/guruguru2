@@ -28,6 +28,7 @@ public class AppStatics extends Application {
     public static final String URL_SEND_OPERATION_LOG = "http://tk2-220-19891.vs.sakura.ne.jp/guruguru/api/regist_operation_log.php";
     public static final String URL_SEND_OPERATION_BEAT = "http://tk2-220-19891.vs.sakura.ne.jp/guruguru/api/regist_operation_beat.php";
     public static final String URL_SEND_ERROR_LOG = "http://tk2-220-19891.vs.sakura.ne.jp/guruguru/api/regist_error_log.php";
+    public static final String URL_SEND_HTMLTAG = "http://tk2-220-19891.vs.sakura.ne.jp/guruguru/api/regist_tagpick.php";
 
     //シナリオ選択用
     public List<Boolean> selectScenarios = new ArrayList<Boolean>();
