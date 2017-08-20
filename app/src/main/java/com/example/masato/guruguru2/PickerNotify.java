@@ -13,8 +13,14 @@ public class PickerNotify {
         listener.sendTags(tags, url, title);
     }
 
-    void nofityUrl(String url){
+    void notifyUrl(String url){
 
         listener.notifyUrl(url);
+    }
+
+    // リスナーをセットする
+    public void setListener(PickerListener listener) {
+
+        this.listener = listener;
     }
 }

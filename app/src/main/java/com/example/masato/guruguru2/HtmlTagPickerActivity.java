@@ -1,6 +1,7 @@
 package com.example.masato.guruguru2;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
@@ -15,6 +16,11 @@ import org.xwalk.core.XWalkNavigationHistory;
 import org.xwalk.core.XWalkResourceClient;
 import org.xwalk.core.XWalkUIClient;
 import org.xwalk.core.XWalkView;
+
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * Created by masato on 2017/08/16.
@@ -53,7 +59,7 @@ public class HtmlTagPickerActivity extends AppCompatActivity implements PickerLi
         et_url.setText(firstUrl);
 
         pickerNotify = new PickerNotify();
-
+        pickerNotify.setListener(this);
 
         xWalkView = (XWalkView) findViewById(R.id.web_tagPicker);
         xWalkView.setEnabled(false);
@@ -92,51 +98,80 @@ public class HtmlTagPickerActivity extends AppCompatActivity implements PickerLi
     @Override
     public void sendTags(String tags, String url, String title) {
 
-        PickerApi pickerApi = new PickerApi(this, 1, tags, url, title);
-        pickerApi.setOnCallBack(new PickerApi.CallBackTask() {
+        String fileName = "";
+        Date date = new Date();
+        SimpleDateFormat sdf1 = new SimpleDateFormat("yyyyMMdd-HHmmss");
+        fileName = "pick_" + sdf1.format(date).toString() + ".txt";
 
-            @Override
-            public void callBack(Integer result) {
-                super.callBack(result);
+        if(saveFile(fileName, tags)) {
 
-                if(result == 1){
-                    //送信完了
-                    AlertDialog.Builder alertDialog=new AlertDialog.Builder(activity);
-                    alertDialog.setTitle("エラー");      //タイトル設定
-                    alertDialog.setMessage("サーバへHTMLタグ");  //内容(メッセージ)設定
-                    // OK(肯定的な)ボタンの設定
-                    alertDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int which) {
-                            // OKボタン押下時の処理
-                            //finish();
-                        }
-                    });
-                    alertDialog.show();
+            PickerApi pickerApi = new PickerApi(this, 1, fileName, url, title);
+            pickerApi.setOnCallBack(new PickerApi.CallBackTask() {
 
-                }else{
-                    //送信失敗
-                    AlertDialog.Builder alertDialog=new AlertDialog.Builder(activity);
-                    alertDialog.setTitle("エラー");      //タイトル設定
-                    alertDialog.setMessage("サーバへHTMLタグを送信できませんでした。");  //内容(メッセージ)設定
-                    // OK(肯定的な)ボタンの設定
-                    alertDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int which) {
-                            // OKボタン押下時の処理
-                            //finish();
-                        }
-                    });
-                    alertDialog.show();
+                @Override
+                public void callBack(Integer result) {
+                    super.callBack(result);
+
+                    if (result == 1) {
+                        //送信完了
+                        AlertDialog.Builder alertDialog = new AlertDialog.Builder(activity);
+                        alertDialog.setTitle("ピック完了");      //タイトル設定
+                        alertDialog.setMessage("サーバへHTMLタグを送信しました。");  //内容(メッセージ)設定
+                        // OK(肯定的な)ボタンの設定
+                        alertDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                // OKボタン押下時の処理
+                                //finish();
+                            }
+                        });
+                        alertDialog.show();
+
+                    } else {
+                        //送信失敗
+                        AlertDialog.Builder alertDialog = new AlertDialog.Builder(activity);
+                        alertDialog.setTitle("エラー");      //タイトル設定
+                        alertDialog.setMessage("サーバへHTMLタグを送信できませんでした。");  //内容(メッセージ)設定
+                        // OK(肯定的な)ボタンの設定
+                        alertDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                // OKボタン押下時の処理
+                                //finish();
+                            }
+                        });
+                        alertDialog.show();
+                    }
+
                 }
+            });
+            pickerApi.execute();
 
-            }
-        });
-        pickerApi.execute();
+        }else{
+            Log.d("Error", "File Write Error.");
+        }
+
     }
 
     @Override
     public void notifyUrl(String url) {
 
         et_url.setText(url);
+    }
+
+
+    public Boolean saveFile(String file, String str) {
+        FileOutputStream fileOutputstream = null;
+
+        try {
+            fileOutputstream = openFileOutput(file, Context.MODE_PRIVATE);
+            fileOutputstream.write(str.getBytes());
+
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+
+            return false;
+        }
+
     }
 }
 
@@ -148,9 +183,9 @@ class PickerResourceClient extends XWalkResourceClient {
     private Activity activity;
 
     private Boolean pickValid = false;
-    private String jsCode = "document.querySelector(\"body\").innerText";
+    private String jsCode = "document.documentElement.outerHTML";
 
-    private String url;
+    private String pageUrl;
     private String title;
 
     public PickerResourceClient(XWalkView view, Activity activity, PickerNotify pn) {
@@ -166,7 +201,7 @@ class PickerResourceClient extends XWalkResourceClient {
         super.onLoadStarted(view, url);
 
         pickValid = false;
-        pickerNotify.nofityUrl(url);
+
     }
 
     @Override
@@ -174,15 +209,15 @@ class PickerResourceClient extends XWalkResourceClient {
         super.onLoadFinished(view, url);
 
         pickValid = true;
-        this.url = url;
+        this.pageUrl = url;
         this.title = xWalkView.getTitle();
-
+        pickerNotify.notifyUrl(url);
     }
 
     public void getAllTags(){
 
         if(pickValid) {
-            xWalkView.evaluateJavascript(jsCode, new PickerValueCallBack(this, pickerNotify, url, title));
+            xWalkView.evaluateJavascript(jsCode, new PickerValueCallBack(this, pickerNotify, pageUrl, title));
         }
     }
 
@@ -204,6 +239,7 @@ class PickerResourceClient extends XWalkResourceClient {
         @Override
         public void onReceiveValue(Object o) {
             pickerNotify.sendTags(o.toString(), url, title);
+            Log.d("tag", o.toString());
         }
     }
 }
