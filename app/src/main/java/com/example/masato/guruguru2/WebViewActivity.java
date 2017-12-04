@@ -433,7 +433,7 @@ class CustomResourceClient extends XWalkResourceClient {
         xWalkCookieManager.setAcceptCookie(true);
         xWalkCookieManager.setAcceptFileSchemeCookies(true);
         xWalkCookieManager.removeAllCookie();
-        xWalkCookieManager.setCookie("www.google.com", "test");
+        xWalkCookieManager.setCookie("http://www.google.com/", "test");
 
         xWalkSettings = view.getSettings();
         //xWalkSettings.setUserAgentString("Mozilla/5.0 (Linux; Android 4.4; Nexus 5 Build/BuildID) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/30.0.0.0 Mobile Safari/537.36");
@@ -612,6 +612,7 @@ class CustomResourceClient extends XWalkResourceClient {
                 @Override
                 public void run() {
                     xWalkCookieManager.removeAllCookie();
+                    xWalkCookieManager.setCookie("http://www.google.com/", "test");
                     pageCount = 0;
                     tempUrl = "";
                     pageLogNotify.sendLogsToActivity("リトライ中…");
@@ -639,6 +640,8 @@ class CustomResourceClient extends XWalkResourceClient {
                             @Override
                             public void run() {
                                 xWalkCookieManager.removeAllCookie();
+                                xWalkCookieManager.setCookie("http://www.google.com/", "test");
+
                                 if (scenarioCount == scenarioList.size() - 1) {
                                     scenarioCount = 0;
                                     pageCount = 0;
@@ -724,6 +727,8 @@ class CustomResourceClient extends XWalkResourceClient {
             @Override
             public void run() {
                 xWalkCookieManager.removeAllCookie();
+                xWalkCookieManager.setCookie("http://www.google.com/", "test");
+
                 if (scenarioCount == scenarioList.size() - 1) {
                     scenarioCount = 0;
                     pageCount = 0;
