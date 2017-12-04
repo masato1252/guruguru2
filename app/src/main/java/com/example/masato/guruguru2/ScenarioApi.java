@@ -240,6 +240,18 @@ public class ScenarioApi extends AsyncTask<Integer, Integer, Integer> {
                                     ai.setInputValue(jo_child.getString("inputValue"));
 
                                     childList.add(ai);
+
+                                } else if (action.getType() == 2) {
+
+                                    ActionPulldown pd = new ActionPulldown();
+                                    jo_child = ja_child.getJSONObject(l);
+
+                                    pd.setNum(jo_child.getInt("pulldown_num"));
+                                    pd.setAttName(jo_child.getString("attName"));
+                                    pd.setAttValue(jo_child.getString("attValue"));
+                                    pd.setIndex(jo_child.getInt("selectIndex"));
+
+                                    childList.add(pd);
                                 }
 
                             }
@@ -389,6 +401,26 @@ public class ScenarioApi extends AsyncTask<Integer, Integer, Integer> {
                 execJS.add(strE);
                 preJS.add(strP);
             }
+
+        }else if(action.getType()==2){
+            //プルダウン選択
+            for(int i=0; i<childList.size(); i++) {
+                ActionPulldown pd = (ActionPulldown)childList.get(i);
+                String strE = header + header2;
+                String strP = header2;
+
+                //プルダウン絞り込み
+                strE += ".querySelector('select[" + pd.getAttName() + "=" + pd.getAttValue() + "]')";
+                strP += ".querySelector('select[" + pd.getAttName() + "=" + pd.getAttValue() + "]');";
+
+                //選択
+                strE += ".selectedIndex=" + pd.getIndex() + "; void 0;";
+
+                //実行スクリプトに登録
+                execJS.add(strE);
+                preJS.add(strP);
+            }
+
         }
 
         //Actionオブジェクトに実行スクリプトリストを登録
