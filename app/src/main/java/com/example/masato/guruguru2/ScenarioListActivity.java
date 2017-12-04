@@ -1,5 +1,6 @@
 package com.example.masato.guruguru2;
 
+import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -67,21 +68,39 @@ public class ScenarioListActivity extends AppCompatActivity implements AdapterVi
     }
 
     @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == 999 && resultCode == Activity.RESULT_OK) {
+
+            Intent intent = new Intent();
+            //intent.putExtra("text", "終了");
+            setResult(Activity.RESULT_OK, intent);
+            finish();
+        }
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
-        AppStatics.getInstance().resetSelectScenarios();
-        AppStatics.getInstance().resetSelectScenarioIndexes();
+
+        Intent intent = new Intent();
+        //intent.putExtra("text", "終了");
+        setResult(Activity.RESULT_OK, intent);
+        finish();
     }
 
     @Override
     public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
 
-        if(!AppStatics.getInstance().selectScenarios.get(i)) {
-            AppStatics.getInstance().selectScenarios.set(i, true);
-            view.setBackgroundColor(Color.GREEN);
-        } else {
-            AppStatics.getInstance().selectScenarios.set(i, false);
-            view.setBackgroundColor(Color.WHITE);
+        if(AppStatics.getInstance().selectScenarios.size()>0) {
+            if (!AppStatics.getInstance().selectScenarios.get(i)) {
+                AppStatics.getInstance().selectScenarios.set(i, true);
+                view.setBackgroundColor(Color.GREEN);
+            } else {
+                AppStatics.getInstance().selectScenarios.set(i, false);
+                view.setBackgroundColor(Color.WHITE);
+            }
         }
 
 
@@ -102,7 +121,8 @@ public class ScenarioListActivity extends AppCompatActivity implements AdapterVi
             if(count>0){
                 Intent intent = new Intent(this, WebViewActivity.class);
                 intent.putExtra("mode", 100);
-                startActivity(intent);
+                //startActivity(intent);
+                startActivityForResult(intent, 999);
 
             }else{
                 //未選択エラー

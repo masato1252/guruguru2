@@ -2,6 +2,7 @@ package com.example.masato.guruguru2;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
 
@@ -27,6 +28,7 @@ public class ScenarioApi extends AsyncTask<Integer, Integer, Integer> {
     private Activity activity;
     private CallBackTask callbacktask;
     private ProgressDialog dialog;
+    private Context context;
 
     //Input
     private List<ScenarioIndex> scenarioIndexList;

@@ -45,11 +45,15 @@ public class AppStatics extends Application {
     //------------------------
 
     private static AppStatics instance = new AppStatics();
+    //private static AppStatics instance;
+
     @Override
     public void onCreate() {
         super.onCreate();
-        instance = this;
+        //instance = new AppStatics();
 
+        resetSelectScenarios();
+        resetSelectScenarioIndexes();
     }
 
     public static AppStatics getInstance() {

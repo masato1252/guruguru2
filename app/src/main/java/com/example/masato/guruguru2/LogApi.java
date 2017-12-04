@@ -2,6 +2,7 @@ package com.example.masato.guruguru2;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.util.Log;
@@ -34,14 +35,16 @@ public class LogApi extends AsyncTask<Integer, Integer, Integer> {
     private Activity activity;
     private CallBackTask callbacktask;
     private ProgressDialog dialog;
+    private Context context;
 
     private Integer mode = 0;
     private List<String> params;
     private List<Scenario> scenarios;
 
-    public LogApi(Activity act, Integer mode, List<String> params, List<Scenario> scenarios) {
+    public LogApi(Activity act, Integer mode, List<String> params, List<Scenario> scenarios, Context cont) {
 
         this.activity = act;
+        this.context = cont;
         this.mode = mode;
         if(params == null){
             this.params = new ArrayList<String>();
@@ -57,7 +60,7 @@ public class LogApi extends AsyncTask<Integer, Integer, Integer> {
 
     @Override
     protected void onPreExecute() {
-        dialog = new ProgressDialog(this.activity);
+        dialog = new ProgressDialog(this.context);
         dialog.setTitle("Please wait");
         if(mode==1){
             dialog.setMessage("サーバへ稼働情報を送信中...");

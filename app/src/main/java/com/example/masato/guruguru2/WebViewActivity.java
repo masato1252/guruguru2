@@ -17,6 +17,7 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Display;
+import android.view.KeyEvent;
 import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
@@ -54,6 +55,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 import static android.R.attr.bitmap;
+import static android.R.attr.content;
 import static org.chromium.base.ContextUtils.getApplicationContext;
 
 
@@ -113,7 +115,7 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
 
         xWalkView = (XWalkView) findViewById(R.id.web_webview);
         xWalkView.setEnabled(false);
-        //xWalkView.setDrawingCacheEnabled(true);
+        xWalkView.setDrawingCacheEnabled(true);
 
 
         if(mode==100){
@@ -136,7 +138,7 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
                         AppStatics.getInstance().modifyNetworkType(context);
 
                         //オペレーションログの送信
-                        LogApi logApi = new LogApi(activity, 1, null, scenarioList);
+                        LogApi logApi = new LogApi(activity, 1, null, scenarioList, context);
                         logApi.setOnCallBack(new LogApi.CallBackTask() {
 
                             @Override
@@ -146,7 +148,7 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
                                 if(result == 1){
                                     //オペレーションログ送信完了
                                     xWalkView.setUIClient(new CustomUIClient(xWalkView));
-                                    customResourceClient = new CustomResourceClient(xWalkView, mode, pageLogNotify, activity);
+                                    customResourceClient = new CustomResourceClient(xWalkView, mode, pageLogNotify, activity, context);
                                     customResourceClient.setScenarioList(scenarioList);
                                     xWalkView.setResourceClient(customResourceClient);
                                     Log.d("scene_url", scenarioList.get(0).getSceneList().get(0).getUrl());
@@ -156,13 +158,16 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
 
                                 }else{
                                     //送信失敗
-                                    AlertDialog.Builder alertDialog=new AlertDialog.Builder(activity);
+                                    AlertDialog.Builder alertDialog=new AlertDialog.Builder(activity.getApplicationContext());
                                     alertDialog.setTitle("エラー");      //タイトル設定
                                     alertDialog.setMessage("サーバへ稼働情報を送信できませんでした。");  //内容(メッセージ)設定
                                     // OK(肯定的な)ボタンの設定
                                     alertDialog.setPositiveButton("終了", new DialogInterface.OnClickListener() {
                                         public void onClick(DialogInterface dialog, int which) {
                                             // OKボタン押下時の処理
+                                            Intent intent = new Intent();
+                                            //intent.putExtra("text", "終了");
+                                            setResult(Activity.RESULT_OK, intent);
                                             finish();
                                         }
                                     });
@@ -200,13 +205,16 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
         }
 
         if(!bool){
-            AlertDialog.Builder alertDialog=new AlertDialog.Builder(this);
+            AlertDialog.Builder alertDialog=new AlertDialog.Builder(WebViewActivity.this);
             alertDialog.setTitle("エラー");      //タイトル設定
             alertDialog.setMessage(msg);  //内容(メッセージ)設定
             // OK(肯定的な)ボタンの設定
             alertDialog.setPositiveButton("終了", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int which) {
                     // OKボタン押下時の処理
+                    Intent intent = new Intent();
+                    //intent.putExtra("text", "終了");
+                    setResult(Activity.RESULT_OK, intent);
                     finish();
                 }
             });
@@ -226,7 +234,7 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
     @Override
     public void sendLogHeartBeat() {
 
-        LogApi beatLogApi = new LogApi(this, 2, null, null);
+        LogApi beatLogApi = new LogApi(this, 2, null, null, this);
         beatLogApi.setOnCallBack(new LogApi.CallBackTask() {
 
             @Override
@@ -249,13 +257,17 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
     @Override
     public void faultSendErrorLog() {
 
-        AlertDialog.Builder alertDialog=new AlertDialog.Builder(this);
+        AlertDialog.Builder alertDialog=new AlertDialog.Builder(WebViewActivity.this);
         alertDialog.setTitle("エラー");      //タイトル設定
         alertDialog.setMessage("サーバへエラーログを送信できませんでした。");  //内容(メッセージ)設定
         // OK(肯定的な)ボタンの設定
         alertDialog.setPositiveButton("終了", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
                 // OKボタン押下時の処理
+                //finish();
+                Intent intent = new Intent();
+                //intent.putExtra("text", "終了");
+                setResult(Activity.RESULT_OK, intent);
                 finish();
             }
         });
@@ -270,21 +282,80 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
         super.onDestroy();
 
         //AppStatics.getInstance().resetSelectScenarioIndexes();
-        customResourceClient.stopAllTask();
+        //customResourceClient.stopAllTask();
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            finishAndRemoveTask();
-        }else{
-            finish();
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+//            finishAndRemoveTask();
+//        }else{
+//            finish();
+//        }
+
+        Intent intent = new Intent();
+        //intent.putExtra("text", "終了");
+        setResult(Activity.RESULT_OK, intent);
+        finish();
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+
+        if (event.getAction()==KeyEvent.ACTION_DOWN) {
+            if (event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
+
+                AlertDialog.Builder alertDialog=new AlertDialog.Builder(WebViewActivity.this);
+                alertDialog.setTitle("確認");      //タイトル設定
+                alertDialog.setMessage("監視を終了しますか？");  //内容(メッセージ)設定
+                // OK(肯定的な)ボタンの設定
+                alertDialog.setPositiveButton("終了する", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        // OKボタン押下時の処理
+                        //finis___ioooooooh();________
+                        Intent intent = new Intent();
+                        //intent.putExtra("text", "終了");
+                        setResult(Activity.RESULT_OK, intent);
+                        finish();
+                    }
+                });
+                alertDialog.setNegativeButton("しない", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        // NGボタン押下時の処理
+                    }
+                });
+                alertDialog.show();
+            }
+
         }
+        return super.dispatchKeyEvent(event);
     }
 
     @Override
     public void onClick(View view) {
 
         if(view==btn_back){
-            customResourceClient.stopAllTask();
-            finish();
+            //customResourceClient.stopAllTask();
+            //finish();
+
+            AlertDialog.Builder alertDialog=new AlertDialog.Builder(WebViewActivity.this);
+            alertDialog.setTitle("確認");      //タイトル設定
+            alertDialog.setMessage("監視を終了しますか？");  //内容(メッセージ)設定
+            // OK(肯定的な)ボタンの設定
+            alertDialog.setPositiveButton("終了する", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    // OKボタン押下時の処理
+                    //finish();
+                    Intent intent = new Intent();
+                    //intent.putExtra("text", "終了");
+                    setResult(Activity.RESULT_OK, intent);
+                    finish();
+                }
+            });
+            alertDialog.setNegativeButton("しない", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    // NGボタン押下時の処理
+                }
+            });
+            alertDialog.show();
+
         }
     }
 
@@ -342,9 +413,11 @@ class CustomResourceClient extends XWalkResourceClient {
     private List<String> errorParams;
     private String errorMsg = "";
     private Activity activity;
+    private Context context;
 
+    private String tempUrl = "";
 
-    CustomResourceClient(XWalkView view, Integer mode, PageLogNotify pln, Activity act) {
+    CustomResourceClient(XWalkView view, Integer mode, PageLogNotify pln, Activity act, Context cont) {
         super(view);
 
         this.xWalkView = view;
@@ -354,11 +427,13 @@ class CustomResourceClient extends XWalkResourceClient {
         STATE = 0;
         errorParams = new ArrayList<String>();
         this.activity = act;
+        this.context = cont;
 
         xWalkCookieManager = new XWalkCookieManager();
         xWalkCookieManager.setAcceptCookie(true);
         xWalkCookieManager.setAcceptFileSchemeCookies(true);
         xWalkCookieManager.removeAllCookie();
+        xWalkCookieManager.setCookie("www.google.com", "test");
 
         xWalkSettings = view.getSettings();
         //xWalkSettings.setUserAgentString("Mozilla/5.0 (Linux; Android 4.4; Nexus 5 Build/BuildID) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/30.0.0.0 Mobile Safari/537.36");
@@ -494,6 +569,7 @@ class CustomResourceClient extends XWalkResourceClient {
         this.scenarioList = list;
         pageCount = 0;
         scenarioCount = 0;
+        tempUrl = "";
     }
 
 
@@ -537,6 +613,7 @@ class CustomResourceClient extends XWalkResourceClient {
                 public void run() {
                     xWalkCookieManager.removeAllCookie();
                     pageCount = 0;
+                    tempUrl = "";
                     pageLogNotify.sendLogsToActivity("リトライ中…");
                     xWalkView.loadUrl(scenarioList.get(scenarioCount).getSceneList().get(0).getUrl());
 
@@ -549,7 +626,7 @@ class CustomResourceClient extends XWalkResourceClient {
             errorCount = 0;
 
             makeErrorParams();
-            LogApi errorLogApi = new LogApi(activity, 3, errorParams, null);
+            LogApi errorLogApi = new LogApi(activity, 3, errorParams, null, context);
             errorLogApi.setOnCallBack(new LogApi.CallBackTask() {
 
                 @Override
@@ -565,11 +642,13 @@ class CustomResourceClient extends XWalkResourceClient {
                                 if (scenarioCount == scenarioList.size() - 1) {
                                     scenarioCount = 0;
                                     pageCount = 0;
+                                    tempUrl = "";
                                     pageLogNotify.sendLogHeartBeat();
 
                                 } else {
                                     scenarioCount++;
                                     pageCount = 0;
+                                    tempUrl = "";
                                     xWalkView.loadUrl(scenarioList.get(scenarioCount).getSceneList().get(0).getUrl());
                                 }
                             }
@@ -648,11 +727,13 @@ class CustomResourceClient extends XWalkResourceClient {
                 if (scenarioCount == scenarioList.size() - 1) {
                     scenarioCount = 0;
                     pageCount = 0;
+                    tempUrl = "";
                     pageLogNotify.sendLogHeartBeat();
 
                 } else {
                     scenarioCount++;
                     pageCount = 0;
+                    tempUrl = "";
                     xWalkView.loadUrl(scenarioList.get(scenarioCount).getSceneList().get(0).getUrl());
                 }
 
@@ -662,7 +743,7 @@ class CustomResourceClient extends XWalkResourceClient {
 
 
     public void loopScenario() {
-
+        tempUrl = "";
         scenarioCount = 0;
         pageCount = 0;
         xWalkView.loadUrl(scenarioList.get(scenarioCount).getSceneList().get(0).getUrl());
@@ -712,7 +793,14 @@ class CustomResourceClient extends XWalkResourceClient {
         super.onLoadFinished(view, url);
 
         STATE = 0;
-        pageCount++;
+
+        if(!tempUrl.equals(url)) {
+            pageCount++;
+            tempUrl = url;
+            Log.d("URL:", tempUrl);
+        }else{
+            return;
+        }
 
         if (pageCount == 1) {
             scenario = scenarioList.get(scenarioCount);

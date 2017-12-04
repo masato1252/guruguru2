@@ -53,11 +53,12 @@ public class ScenarioListAdapter extends ArrayAdapter<ScenarioIndex> {
         holder.text_name.setText(scenarioIndex.getName());
         holder.text_memo.setText(scenarioIndex.getMemo());
 
-
-        if(!AppStatics.getInstance().selectScenarios.get(position)) {
-            convertView.setBackgroundColor(Color.WHITE);
-        } else {
-            convertView.setBackgroundColor(Color.GREEN);
+        if(AppStatics.getInstance().selectScenarios.size()>0) {
+            if (!AppStatics.getInstance().selectScenarios.get(position)) {
+                convertView.setBackgroundColor(Color.WHITE);
+            } else {
+                convertView.setBackgroundColor(Color.GREEN);
+            }
         }
 
         return convertView;
