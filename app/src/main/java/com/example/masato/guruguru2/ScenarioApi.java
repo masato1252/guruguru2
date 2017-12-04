@@ -340,7 +340,7 @@ public class ScenarioApi extends AsyncTask<Integer, Integer, Integer> {
                              str += ".querySelector('" + ac.getTagName() + "')";
                          } else {
                              //属性情報あり
-                             str += ".querySelector('" + ac.getTagName() + "[" + ac.getAttName() + "=" + ac.getAttValue() + "]')";
+                             str += ".querySelector('" + ac.getTagName() + "[" + ac.getAttName() + "=\"" + ac.getAttValue() + "\"]')";
                          }
                      }else if(ac.getDeep()>1){
                          //複数あり
@@ -349,7 +349,7 @@ public class ScenarioApi extends AsyncTask<Integer, Integer, Integer> {
                              str += ".querySelectorAll('" + ac.getTagName() + "')[" + (ac.getDeep()-1) + "]";
                          } else {
                              //属性情報あり
-                             str += ".querySelectorAll('" + ac.getTagName() + "[" + ac.getAttName() + "=" + ac.getAttValue() + "]')[" + (ac.getDeep()-1) + "]";
+                             str += ".querySelectorAll('" + ac.getTagName() + "[" + ac.getAttName() + "=\"" + ac.getAttValue() + "\"]')[" + (ac.getDeep()-1) + "]";
                          }
                      }
                      lastTagName = ac.getTagName();
@@ -391,8 +391,8 @@ public class ScenarioApi extends AsyncTask<Integer, Integer, Integer> {
                 String strP = header2;
 
                 //フォーム絞り込み
-                strE += ".querySelector('input[name=" + ai.getAttValue() + "]')";
-                strP += ".querySelector('input[name=" + ai.getAttValue() + "]');";
+                strE += ".querySelector('input[name=\"" + ai.getAttValue() + "\"]')";
+                strP += ".querySelector('input[name=\"" + ai.getAttValue() + "\"]');";
 
                 //入力値指定
                 strE += ".value='" + ai.getInputValue() + "'; void 0;";
@@ -410,11 +410,11 @@ public class ScenarioApi extends AsyncTask<Integer, Integer, Integer> {
                 String strP = header2;
 
                 //プルダウン絞り込み
-                strE += ".querySelector('select[" + pd.getAttName() + "=" + pd.getAttValue() + "]')";
-                strP += ".querySelector('select[" + pd.getAttName() + "=" + pd.getAttValue() + "]');";
+                strE += ".querySelector('select[" + pd.getAttName() + "=\"" + pd.getAttValue() + "\"]')";
+                strP += ".querySelector('select[" + pd.getAttName() + "=\"" + pd.getAttValue() + "\"]');";
 
                 //選択
-                strE += ".selectedIndex=" + pd.getIndex() + "; void 0;";
+                strE += ".selectedIndex=" + (pd.getIndex()-1) + "; void 0;";
 
                 //実行スクリプトに登録
                 execJS.add(strE);
