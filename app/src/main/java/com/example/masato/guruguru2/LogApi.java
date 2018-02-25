@@ -60,7 +60,7 @@ public class LogApi extends AsyncTask<Integer, Integer, Integer> {
 
     @Override
     protected void onPreExecute() {
-        dialog = new ProgressDialog(this.context);
+        dialog = new ProgressDialog(this.activity);
         dialog.setTitle("Please wait");
         if(mode==1){
             dialog.setMessage("サーバへ稼働情報を送信中...");

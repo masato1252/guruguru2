@@ -6,6 +6,10 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.net.http.SslError;
 import android.os.Build;
 import android.os.Bundle;
@@ -625,6 +629,21 @@ class CustomResourceClient extends XWalkResourceClient {
             //サーバへエラーログ送信
             pageLogNotify.sendLogsToActivity("サーバへエラーログ出力");
             errorCount = 0;
+
+            //Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+            Uri uri =Uri.parse("android.resource://" + context.getPackageName() + "/raw/" + "alert");
+
+            MediaPlayer player = new MediaPlayer();
+            try {
+                player.setDataSource(context, uri);                   // 音声を設定
+                player.setAudioStreamType(AudioManager.STREAM_ALARM); // アラームのボリュームで再生
+                //player.setLooping(true);                              // ループ再生を設定
+                player.prepare();                                     // 音声を読み込み
+            }catch(IOException e){
+
+            }
+
+            player.start(); // 再生
 
             makeErrorParams();
             LogApi errorLogApi = new LogApi(activity, 3, errorParams, null, context);
