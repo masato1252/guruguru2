@@ -86,7 +86,7 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
     //シナリオリスト
     private List<Scenario> scenarioList;
 
-
+    private MediaPlayer player;
 
 
     @Override
@@ -122,10 +122,21 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
         xWalkView.setDrawingCacheEnabled(true);
 
 
+        Uri uri = Uri.parse("android.resource://" + context.getPackageName() + "/raw/" + "alert");
+        player = new MediaPlayer();
+        try {
+            player.setDataSource(WebViewActivity.this, uri);
+            player.setAudioStreamType(AudioManager.STREAM_ALARM);
+            player.prepare();
+        }catch(IOException e) {
+
+        }
+
+
         if(mode==100){
 
             scenarioList = new ArrayList<Scenario>();
-            ScenarioApi scenarioApi = new ScenarioApi(this, AppStatics.getInstance().selectScenarioIndexes, scenarioList);
+            ScenarioApi scenarioApi = new ScenarioApi(WebViewActivity.this, AppStatics.getInstance().selectScenarioIndexes, scenarioList);
             scenarioApi.setOnCallBack(new ScenarioApi.CallBackTask() {
 
                 @Override
@@ -142,7 +153,7 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
                         AppStatics.getInstance().modifyNetworkType(context);
 
                         //オペレーションログの送信
-                        LogApi logApi = new LogApi(activity, 1, null, scenarioList, context);
+                        LogApi logApi = new LogApi(WebViewActivity.this, 1, null, scenarioList, context);
                         logApi.setOnCallBack(new LogApi.CallBackTask() {
 
                             @Override
@@ -173,6 +184,7 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
                                             //intent.putExtra("text", "終了");
                                             setResult(Activity.RESULT_OK, intent);
                                             finish();
+                                            android.os.Process.killProcess(android.os.Process.myPid());
                                         }
                                     });
                                     alertDialog.show();
@@ -220,6 +232,7 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
                     //intent.putExtra("text", "終了");
                     setResult(Activity.RESULT_OK, intent);
                     finish();
+                    android.os.Process.killProcess(android.os.Process.myPid());
                 }
             });
             alertDialog.show();
@@ -238,7 +251,7 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
     @Override
     public void sendLogHeartBeat() {
 
-        LogApi beatLogApi = new LogApi(this, 2, null, null, this);
+        LogApi beatLogApi = new LogApi(WebViewActivity.this, 2, null, null, this);
         beatLogApi.setOnCallBack(new LogApi.CallBackTask() {
 
             @Override
@@ -273,12 +286,39 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
                 //intent.putExtra("text", "終了");
                 setResult(Activity.RESULT_OK, intent);
                 finish();
+                android.os.Process.killProcess(android.os.Process.myPid());
             }
         });
         alertDialog.show();
     }
 
+    @Override
+    public void sendErrorLog(List<String> errorParams) {
+        LogApi errorLogApi = new LogApi(WebViewActivity.this, 3, errorParams, null, this);
+        errorLogApi.setOnCallBack(new LogApi.CallBackTask() {
 
+            @Override
+            public void callBack(Integer result) {
+                super.callBack(result);
+
+                if(result == 1){
+                    //送信完了
+                    customResourceClient.completeSendErrorLog();
+                }else{
+                    //送信失敗
+                    faultSendErrorLog();
+                }
+
+            }
+        });
+        errorLogApi.execute();
+    }
+
+
+    public void playAlertMusic() {
+
+        player.start();
+    }
 
 
     @Override
@@ -298,6 +338,7 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
         //intent.putExtra("text", "終了");
         setResult(Activity.RESULT_OK, intent);
         finish();
+        android.os.Process.killProcess(android.os.Process.myPid());
     }
 
     @Override
@@ -318,6 +359,8 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
                         //intent.putExtra("text", "終了");
                         setResult(Activity.RESULT_OK, intent);
                         finish();
+                        //moveTaskToBack(true);
+                        android.os.Process.killProcess(android.os.Process.myPid());
                     }
                 });
                 alertDialog.setNegativeButton("しない", new DialogInterface.OnClickListener() {
@@ -347,10 +390,13 @@ public class WebViewActivity extends AppCompatActivity implements PageLogListene
                 public void onClick(DialogInterface dialog, int which) {
                     // OKボタン押下時の処理
                     //finish();
+                    //customResourceClient.stopAllTask();
                     Intent intent = new Intent();
                     //intent.putExtra("text", "終了");
                     setResult(Activity.RESULT_OK, intent);
                     finish();
+                    //moveTaskToBack(true);
+                    android.os.Process.killProcess(android.os.Process.myPid());
                 }
             });
             alertDialog.setNegativeButton("しない", new DialogInterface.OnClickListener() {
@@ -445,6 +491,8 @@ class CustomResourceClient extends XWalkResourceClient {
         xWalkSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
 
         //xWalkSettings.setImagesEnabled(true);
+
+
 
         checkRunnable = new Runnable() {
             public void run() {
@@ -630,63 +678,78 @@ class CustomResourceClient extends XWalkResourceClient {
             pageLogNotify.sendLogsToActivity("サーバへエラーログ出力");
             errorCount = 0;
 
-            //Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
-            Uri uri =Uri.parse("android.resource://" + context.getPackageName() + "/raw/" + "alert");
-
-            MediaPlayer player = new MediaPlayer();
-            try {
-                player.setDataSource(context, uri);                   // 音声を設定
-                player.setAudioStreamType(AudioManager.STREAM_ALARM); // アラームのボリュームで再生
-                //player.setLooping(true);                              // ループ再生を設定
-                player.prepare();                                     // 音声を読み込み
-            }catch(IOException e){
-
-            }
-
-            player.start(); // 再生
+            pageLogNotify.playAlertMusic();
 
             makeErrorParams();
-            LogApi errorLogApi = new LogApi(activity, 3, errorParams, null, context);
-            errorLogApi.setOnCallBack(new LogApi.CallBackTask() {
+            pageLogNotify.sendErrorLog(errorParams);
 
-                @Override
-                public void callBack(Integer result) {
-                    super.callBack(result);
-
-                    if(result == 1){
-                        //送信完了
-                        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                            @Override
-                            public void run() {
-                                xWalkCookieManager.removeAllCookie();
-                                xWalkCookieManager.setCookie("http://www.google.com/", "test");
-
-                                if (scenarioCount == scenarioList.size() - 1) {
-                                    scenarioCount = 0;
-                                    pageCount = 0;
-                                    tempUrl = "";
-                                    pageLogNotify.sendLogHeartBeat();
-
-                                } else {
-                                    scenarioCount++;
-                                    pageCount = 0;
-                                    tempUrl = "";
-                                    xWalkView.loadUrl(scenarioList.get(scenarioCount).getSceneList().get(0).getUrl());
-                                }
-                            }
-                        }, 5000);
-
-                    }else{
-                        //送信失敗
-                        pageLogNotify.faultSendErrorLog();
-                    }
-
-                }
-            });
-            errorLogApi.execute();
+//            LogApi errorLogApi = new LogApi(activity, 3, errorParams, null, context);
+//            errorLogApi.setOnCallBack(new LogApi.CallBackTask() {
+//
+//                @Override
+//                public void callBack(Integer result) {
+//                    super.callBack(result);
+//
+//                    if(result == 1){
+//                        //送信完了
+//                        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+//                            @Override
+//                            public void run() {
+//                                xWalkCookieManager.removeAllCookie();
+//                                xWalkCookieManager.setCookie("http://www.google.com/", "test");
+//
+//                                if (scenarioCount == scenarioList.size() - 1) {
+//                                    scenarioCount = 0;
+//                                    pageCount = 0;
+//                                    tempUrl = "";
+//                                    pageLogNotify.sendLogHeartBeat();
+//
+//                                } else {
+//                                    scenarioCount++;
+//                                    pageCount = 0;
+//                                    tempUrl = "";
+//                                    xWalkView.loadUrl(scenarioList.get(scenarioCount).getSceneList().get(0).getUrl());
+//                                }
+//                            }
+//                        }, 5000);
+//
+//                    }else{
+//                        //送信失敗
+//                        pageLogNotify.faultSendErrorLog();
+//                    }
+//
+//                }
+//            });
+//            errorLogApi.execute();
 
 
         }
+
+    }
+
+    public void completeSendErrorLog(){
+
+        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                xWalkCookieManager.removeAllCookie();
+                xWalkCookieManager.setCookie("http://www.google.com/", "test");
+
+                if (scenarioCount == scenarioList.size() - 1) {
+                    scenarioCount = 0;
+                    pageCount = 0;
+                    tempUrl = "";
+                    pageLogNotify.sendLogHeartBeat();
+
+                } else {
+                    scenarioCount++;
+                    pageCount = 0;
+                    tempUrl = "";
+                    xWalkView.loadUrl(scenarioList.get(scenarioCount).getSceneList().get(0).getUrl());
+                }
+            }
+        }, 5000);
+
 
     }
 
@@ -950,15 +1013,15 @@ class CustomResourceClient extends XWalkResourceClient {
                 }
             } else if (check.getStr_type() == 1) {
                 //固定文言
-                pageLogNotify.sendLogsToActivity("固定文言チェック: " + check.getPreJS());
+                pageLogNotify.sendLogsToActivity("固定文言チェック(部分一致): " + check.getPreJS());
                 String str = o.toString().replace("\"", "");
-                if (str.equals(check.getOrigin_str())) {
+                if (isPartMatch(str, check.getOrigin_str())) {
                     pageLogNotify.sendLogsToActivity("結果: OK");
-                    pageLogNotify.sendLogsToActivity("文言: " + o.toString());
+                    pageLogNotify.sendLogsToActivity("原文: " + str + " / 比較文: " + check.getOrigin_str());
                     crc.continueCheckOrAction();
                 } else {
-                    pageLogNotify.sendLogsToActivity("結果: NG");
-                    errorMsg = "チェックNG,概要:固定文言チェック,試行コマンド:"+check.getPreJS()+",比較対象:"+check.getOrigin_str()+",抽出結果:"+o.toString();
+                    pageLogNotify.sendLogsToActivity("結果: NG"+ "  原文: " + str + " / 比較文: " + check.getOrigin_str());
+                    errorMsg = "チェックNG,概要:固定文言チェック(部分一致),試行コマンド:"+check.getPreJS()+",比較対象:"+check.getOrigin_str()+",抽出結果:"+o.toString();
                     crc.errorTrigger();
                 }
 
@@ -995,6 +1058,17 @@ class CustomResourceClient extends XWalkResourceClient {
             }
 
         }
+
+        private boolean isPartMatch(String str1, String str2) {
+            if(str1.matches(".*" + str2 + ".*")) {
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+
+
     }
 
 }

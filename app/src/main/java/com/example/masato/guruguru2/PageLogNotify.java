@@ -1,5 +1,8 @@
 package com.example.masato.guruguru2;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by masato on 2017/04/22.
  */
@@ -26,6 +29,17 @@ public class PageLogNotify {
         listener.faultSendErrorLog();
     }
 
+    public void sendErrorLog(List<String> errorParams) {
+
+        listener.sendErrorLog(errorParams);
+    }
+
+    //アラート音を再生
+    public void playAlertMusic() {
+
+        listener.playAlertMusic();
+    }
+
 //    public void backToActivity() {
 //
 //        listener.completeTest();
@@ -36,6 +50,7 @@ public class PageLogNotify {
 
         this.listener = listener;
     }
+
 
 
 }

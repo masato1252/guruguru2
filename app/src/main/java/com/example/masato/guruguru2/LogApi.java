@@ -60,19 +60,28 @@ public class LogApi extends AsyncTask<Integer, Integer, Integer> {
 
     @Override
     protected void onPreExecute() {
-        dialog = new ProgressDialog(this.activity);
-        dialog.setTitle("Please wait");
+
         if(mode==1){
+            dialog = new ProgressDialog(this.activity);
+            dialog.setTitle("Please wait");
             dialog.setMessage("サーバへ稼働情報を送信中...");
+            dialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+            dialog.setCancelable(true);
+            dialog.setMax(100); dialog.setProgress(0);
+            dialog.show();
+
         }else if(mode==2){
-            dialog.setMessage("サーバへ稼働情報を送信中...");
+            //dialog.setMessage("サーバへ稼働情報を送信中...");
         }else if(mode==3){
+            dialog = new ProgressDialog(this.activity);
+            dialog.setTitle("Please wait");
             dialog.setMessage("サーバへエラーログを送信中...");
+            dialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+            dialog.setCancelable(true);
+            dialog.setMax(100); dialog.setProgress(0);
+            dialog.show();
+
         }
-        dialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-        dialog.setCancelable(true);
-        dialog.setMax(100); dialog.setProgress(0);
-        dialog.show();
 
         super.onPreExecute();
     }
@@ -118,8 +127,10 @@ public class LogApi extends AsyncTask<Integer, Integer, Integer> {
 
         super.onPostExecute(result);
 
-        dialog.setProgress(100);
-        dialog.dismiss();
+        if(mode==1 || mode==3) {
+            dialog.setProgress(100);
+            dialog.dismiss();
+        }
 
         //scListAdapter.notifyDataSetChanged();
         callbacktask.callBack(result);
