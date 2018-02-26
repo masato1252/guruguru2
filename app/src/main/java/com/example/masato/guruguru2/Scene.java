@@ -15,14 +15,16 @@ public class Scene {
     private List<Action> actionList;
 
     private Integer check_valid;
-    private List<SceneCheck> checkList;
+    private List<SceneCheckGroup> checkGroupList;
+    //private List<SceneCheck> checkList;
 
-    public List<SceneCheck> getCheckList() {
-        return checkList;
+
+    public List<SceneCheckGroup> getCheckGroupList() {
+        return checkGroupList;
     }
 
-    public void setCheckList(List<SceneCheck> checkList) {
-        this.checkList = checkList;
+    public void setCheckGroupList(List<SceneCheckGroup> checkGroupList) {
+        this.checkGroupList = checkGroupList;
     }
 
     public Integer getCheck_valid() {

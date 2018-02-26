@@ -165,11 +165,13 @@ public class ScenarioApi extends AsyncTask<Integer, Integer, Integer> {
         JSONObject jo_action = null;
         JSONObject jo_child = null;
         JSONObject jo_check = null;
+        JSONObject jo_check_group = null;
 
         JSONArray ja_scene = null;
         JSONArray ja_action = null;
         JSONArray ja_child = null;
         JSONArray ja_check = null;
+        JSONArray ja_check_group = null;
 
         try {
             for(int i=0; i<jsons.size(); i++){
@@ -194,7 +196,8 @@ public class ScenarioApi extends AsyncTask<Integer, Integer, Integer> {
                     Scene scene = new Scene();
                     jo_scene = ja_scene.getJSONObject(j);
                     List<Action> actionList = new ArrayList<Action>();
-                    List<SceneCheck> checkList = new ArrayList<SceneCheck>();
+                    List<SceneCheckGroup> checkGroupList = new ArrayList<SceneCheckGroup>();
+
 
                     scene.setScene_id(jo_scene.getString("scene_id"));
                     scene.setNum(jo_scene.getInt("scene_num"));
@@ -267,36 +270,48 @@ public class ScenarioApi extends AsyncTask<Integer, Integer, Integer> {
                     scene.setCheck_valid(jo_scene.getInt("check_valid"));
                     if(jo_scene.getInt("check_valid")==1){
 
-                        ja_check = jo_scene.getJSONArray("check");
-                        for(int k = 0; k < ja_check.length(); k++) {
-                            jo_check = ja_check.getJSONObject(k);
+                        ja_check_group = jo_scene.getJSONArray("check");
+                        for(int k = 0; k < ja_check_group.length(); k++) {
+                            ja_check = ja_check_group.getJSONArray(k);
 
-                            SceneCheck check = new SceneCheck();
-                            check.setCheck_id(jo_check.getString("check_id"));
-                            check.setMemo(jo_check.getString("check_memo"));
-                            check.setCheck_type(jo_check.getInt("check_type"));
-                            if (jo_check.getInt("check_type") == 0) {
+                            SceneCheckGroup checkGroup = new SceneCheckGroup();
+                            List<SceneCheck> checkList = new ArrayList<SceneCheck>();
 
-                                check.setTagName(jo_check.getString("tagName"));
-                                check.setAttName(jo_check.getString("attName"));
-                                check.setAttValue(jo_check.getString("attValue"));
-                                check.setStr_type(jo_check.getInt("str_type"));
-                                check.setDeep(jo_check.getInt("deep"));
-                                check.setOrigin_str(jo_check.getString("origin_str"));
-                            } else if (jo_check.getInt("check_type") == 1) {
+                            for(int l = 0; l < ja_check.length(); l++){
+                                jo_check = ja_check.getJSONObject(l);
 
-                                check.setUrl(jo_check.getString("check_url"));
+                                SceneCheck check = new SceneCheck();
+                                check.setCheck_id(jo_check.getString("check_id"));
+                                check.setMemo(jo_check.getString("check_memo"));
+                                check.setCheck_type(jo_check.getInt("check_type"));
+                                if (jo_check.getInt("check_type") == 0) {
+
+                                    check.setTagName(jo_check.getString("tagName"));
+                                    check.setAttName(jo_check.getString("attName"));
+                                    check.setAttValue(jo_check.getString("attValue"));
+                                    check.setStr_type(jo_check.getInt("str_type"));
+                                    check.setDeep(jo_check.getInt("deep"));
+                                    check.setOrigin_str(jo_check.getString("origin_str"));
+                                } else if (jo_check.getInt("check_type") == 1) {
+
+                                    check.setUrl(jo_check.getString("check_url"));
+                                }
+
+                                makeVariableScriptForCheck(check);
+                                checkList.add(check);
+
                             }
 
-                            makeVariableScriptForCheck(check);
-                            checkList.add(check);
+                            checkGroup.setCheckList(checkList);
+                            //checkGroup.setGroup_id(ja_check_group.getJSONObject(0).getString("group_id"));
+                            checkGroupList.add(checkGroup);
                         }
 
 
 
                     }
 
-                    scene.setCheckList(checkList);
+                    scene.setCheckGroupList(checkGroupList);
                     scene.setActionList(actionList);
                     sceneList.add(scene);
                 }

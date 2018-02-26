@@ -434,8 +434,14 @@ class CustomResourceClient extends XWalkResourceClient {
     private List<String> exeActionJS;
     private List<String> preActionJS;
     private SceneCheck check;
+    private List<SceneCheck> checkList;
 
     //チェック・アクション用ハンドラ
+    private Handler checkGroupHandler = new Handler();
+    private Runnable checkGroupRunnable;
+    private Integer checkGroupNum = 0;
+    private Integer checkGroupCount = 0;
+
     private Handler checkHandler = new Handler();
     private Runnable checkRunnable;
     private Integer checkNum = 0;
@@ -492,17 +498,33 @@ class CustomResourceClient extends XWalkResourceClient {
 
         //xWalkSettings.setImagesEnabled(true);
 
+        checkGroupRunnable = new Runnable() {
+            public void run() {
+                STATE = 1;
+                checkList = scene.getCheckGroupList().get(checkGroupCount).getCheckList();
+
+                checkCount = 0;
+                checkNum = checkList.size();
+
+                checkHandler.postDelayed(checkRunnable, AppStatics.getInstance().outputSleepTime(500));
+
+            }
+        };
 
 
         checkRunnable = new Runnable() {
             public void run() {
-                STATE = 1;
-                check = scene.getCheckList().get(checkCount);
+
+                check = checkList.get(checkCount);
+
+                if(checkCount == checkNum-1){
+                    STATE = 10;
+                }
 
                 if (check.getCheck_type() == 0) {
 
                     String preStr = check.getPreJS();
-                    xWalkView.evaluateJavascript(preStr, new CheckValueCallback(crc, xWalkView, check, pageLogNotify));
+                    xWalkView.evaluateJavascript(preStr, new CheckValueCallback(crc, xWalkView, check, pageLogNotify, STATE, (checkNum-1), (checkCount+1)));
 
                 }else if(check.getCheck_type() == 1){
 
@@ -547,14 +569,26 @@ class CustomResourceClient extends XWalkResourceClient {
     }
 
 
-    public void continueCheckOrAction() {
+    public void continueCheckOrAction(Boolean check) {
+
+        if(check){
+            STATE = 10;
+        }
 
         if(STATE==1){
-            //チェックフェーズ
+            //チェックフェーズ(連続チェック中・checkGroup内)
 
             checkCount++;
 
-            if(checkCount >= checkNum){
+            //続行
+            checkHandler.postDelayed(checkRunnable, AppStatics.getInstance().outputSleepTime(500));
+
+        }else if(STATE==10){
+            //チェックフェーズ
+
+            checkGroupCount++;
+
+            if(checkGroupCount >= checkGroupNum){
                 //Actionへ
                 if(actionNum>0){
                     actionHandler.postDelayed(actionRunnable, AppStatics.getInstance().outputSleepTime(scene.getActionList().get(0).getSleep()));
@@ -567,7 +601,7 @@ class CustomResourceClient extends XWalkResourceClient {
 
             }else{
                 //続行
-                checkHandler.postDelayed(checkRunnable, AppStatics.getInstance().outputSleepTime(2));
+                checkGroupHandler.postDelayed(checkGroupRunnable, AppStatics.getInstance().outputSleepTime(500));
             }
 
         }else if(STATE==2){
@@ -595,16 +629,28 @@ class CustomResourceClient extends XWalkResourceClient {
 
     public void checkURL() {
 
+        String or_str;
+        if((checkNum-1)==0){
+            or_str = "[AND条件] ";
+        }else{
+            or_str = "[OR条件"+(checkCount+1)+"] ";
+        }
+
         if (nowURL.startsWith(check.getUrl())) {
-            pageLogNotify.sendLogsToActivity("URL前方一致チェック: OK");
-            pageLogNotify.sendLogsToActivity("URL 現在位置: " + nowURL);
-            pageLogNotify.sendLogsToActivity("URL 比較対象: " + check.getUrl());
-            continueCheckOrAction();
+            pageLogNotify.sendLogsToActivity(or_str + "URL前方一致チェック: OK");
+            pageLogNotify.sendLogsToActivity(or_str + "URL 現在位置: " + nowURL);
+            pageLogNotify.sendLogsToActivity(or_str + "URL 比較対象: " + check.getUrl());
+            continueCheckOrAction(true);
         } else {
-            pageLogNotify.sendLogsToActivity("URL前方一致チェック: NG");
-            pageLogNotify.sendLogsToActivity("URL 現在位置: " + nowURL);
-            pageLogNotify.sendLogsToActivity("URL 比較対象: " + check.getUrl());
-            errorTrigger();
+            pageLogNotify.sendLogsToActivity(or_str + "URL前方一致チェック: NG");
+            pageLogNotify.sendLogsToActivity(or_str + "URL 現在位置: " + nowURL);
+            pageLogNotify.sendLogsToActivity(or_str + "URL 比較対象: " + check.getUrl());
+            if(STATE==1){
+                continueCheckOrAction(false);
+            }else if(STATE==10){
+                errorTrigger();
+            }
+
         }
     }
 
@@ -767,7 +813,7 @@ class CustomResourceClient extends XWalkResourceClient {
             setParameter(errorParams, "details", "HTTPステータス異常");
             setParameter(errorParams, "type", STATE.toString());
 
-        }else if(STATE==1) {
+        }else if(STATE==1 || STATE==10) {
             //画面チェックレベル
             setParameter(errorParams, "operation_id", AppStatics.getInstance().getOperationId());
             setParameter(errorParams, "scenario_id", scenarioIndex.getId());
@@ -916,22 +962,22 @@ class CustomResourceClient extends XWalkResourceClient {
             }
 
 
-            checkCount = 0;
-            checkNum = scene.getCheckList().size();
+            checkGroupCount = 0;
+            checkGroupNum = scene.getCheckGroupList().size();
             actionCount = 0;
             actionNum = scene.getActionList().size();
 
 
-            if (checkNum == 0 && actionNum == 0) {
+            if (checkGroupNum == 0 && actionNum == 0) {
                 //シナリオ正常終了
                 Log.d("1", "1");
                 scenarioComplete();
 
-            } else if (checkNum > 0) {
+            } else if (checkGroupNum > 0) {
                 //Checkへ
-                checkHandler.postDelayed(checkRunnable, AppStatics.getInstance().outputSleepTime(3));
+                checkGroupHandler.postDelayed(checkGroupRunnable, AppStatics.getInstance().outputSleepTime(3));
 
-            } else if (checkNum == 0) {
+            } else if (checkGroupNum == 0) {
                 //Actionへ
                 actionHandler.postDelayed(actionRunnable, AppStatics.getInstance().outputSleepTime(scene.getActionList().get(0).getSleep()));
 
@@ -969,7 +1015,7 @@ class CustomResourceClient extends XWalkResourceClient {
                 view.loadUrl(exeStr);
                 Log.d("returnValue", o.toString());
                 pageLogNotify.sendLogsToActivity("アクション可否: OK");
-                crc.continueCheckOrAction();
+                crc.continueCheckOrAction(false);
             } else {
                 pageLogNotify.sendLogsToActivity("アクション可否: NG");
                 errorMsg = "アクションNG,概要:"+action.getMemo()+",試行コマンド:"+exeStr;
@@ -988,37 +1034,54 @@ class CustomResourceClient extends XWalkResourceClient {
         XWalkView view;
         PageLogNotify pageLogNotify;
         SceneCheck check;
+        Integer STATE;
+        Integer count;
+        Integer num;
 
-        public CheckValueCallback(CustomResourceClient crc, XWalkView view, SceneCheck check, PageLogNotify pln) {
+        public CheckValueCallback(CustomResourceClient crc, XWalkView view, SceneCheck check, PageLogNotify pln, Integer STATE, Integer num, Integer count) {
             this.crc = crc;
             this.view = view;
             this.pageLogNotify = pln;
             this.check = check;
+            this.STATE = STATE;
+            this.num = num;
+            this.count = count;
         }
 
         @Override
         public void onReceiveValue(Object o) {
 
+            String or_str;
+            if(num==0){
+                or_str = "[AND条件] ";
+            }else{
+                or_str = "[OR条件"+count+"] ";
+            }
+
             Log.d("returnValue", o.toString());
             if (check.getStr_type() == 0) {
                 //タグ有無のみ
-                pageLogNotify.sendLogsToActivity("指定タグ存在チェック: " + check.getPreJS());
+                pageLogNotify.sendLogsToActivity(or_str + "指定タグ存在チェック: " + check.getPreJS());
                 if (!o.toString().equals("null")) {
                     pageLogNotify.sendLogsToActivity("結果: OK");
-                    crc.continueCheckOrAction();
+                    crc.continueCheckOrAction(true);
                 } else {
                     pageLogNotify.sendLogsToActivity("結果: NG");
                     errorMsg = "チェックNG,概要:指定タグ存在チェック,試行コマンド:"+check.getPreJS();
-                    crc.errorTrigger();
+                    if(STATE==1) {
+                        crc.continueCheckOrAction(false);
+                    }else if(STATE==10){
+                        crc.errorTrigger();
+                    }
                 }
             } else if (check.getStr_type() == 1) {
                 //固定文言
-                pageLogNotify.sendLogsToActivity("固定文言チェック(部分一致): " + check.getPreJS());
+                pageLogNotify.sendLogsToActivity(or_str + "固定文言チェック(部分一致): " + check.getPreJS());
                 String str = o.toString().replace("\"", "");
                 if (isPartMatch(str, check.getOrigin_str())) {
                     pageLogNotify.sendLogsToActivity("結果: OK");
                     pageLogNotify.sendLogsToActivity("原文: " + str + " / 比較文: " + check.getOrigin_str());
-                    crc.continueCheckOrAction();
+                    crc.continueCheckOrAction(true);
                 } else {
                     pageLogNotify.sendLogsToActivity("結果: NG"+ "  原文: " + str + " / 比較文: " + check.getOrigin_str());
                     errorMsg = "チェックNG,概要:固定文言チェック(部分一致),試行コマンド:"+check.getPreJS()+",比較対象:"+check.getOrigin_str()+",抽出結果:"+o.toString();
@@ -1027,33 +1090,41 @@ class CustomResourceClient extends XWalkResourceClient {
 
             } else if (check.getStr_type() == 2) {
                 //数値 1000
-                pageLogNotify.sendLogsToActivity("数値(桁区切りなし)チェック: " + check.getPreJS());
+                pageLogNotify.sendLogsToActivity(or_str + "数値(桁区切りなし)チェック: " + check.getPreJS());
                 String str = o.toString().replace("\"", "");
                 try {
                     Integer.parseInt(str);
                     pageLogNotify.sendLogsToActivity("結果: OK");
                     pageLogNotify.sendLogsToActivity("数値: " + str);
-                    crc.continueCheckOrAction();
+                    crc.continueCheckOrAction(true);
                 } catch (NumberFormatException e) {
                     pageLogNotify.sendLogsToActivity("結果: NG");
                     errorMsg = "チェックNG,概要:数値(桁区切りなし)チェック,試行コマンド:"+check.getPreJS()+",抽出結果:"+str;
-                    crc.errorTrigger();
+                    if(STATE==1) {
+                        crc.continueCheckOrAction(false);
+                    }else if(STATE==10){
+                        crc.errorTrigger();
+                    }
                 }
 
             } else if (check.getStr_type() == 3) {
                 //数値 1,000
-                pageLogNotify.sendLogsToActivity("数値(桁区切りあり)チェック: " + check.getPreJS());
+                pageLogNotify.sendLogsToActivity(or_str + "数値(桁区切りあり)チェック: " + check.getPreJS());
                 String str = o.toString().replace("\"", "");
                 try {
                     str = str.replace(",", "");
                     Integer.parseInt(str);
                     pageLogNotify.sendLogsToActivity("結果: OK");
                     pageLogNotify.sendLogsToActivity("数値: " + o.toString());
-                    crc.continueCheckOrAction();
+                    crc.continueCheckOrAction(true);
                 } catch (NumberFormatException e) {
                     pageLogNotify.sendLogsToActivity("結果: NG");
                     errorMsg = "チェックNG,概要:数値(桁区切りあり)チェック,試行コマンド:"+check.getPreJS()+",抽出結果:"+o.toString();
-                    crc.errorTrigger();
+                    if(STATE==1) {
+                        crc.continueCheckOrAction(false);
+                    }else if(STATE==10){
+                        crc.errorTrigger();
+                    }
                 }
             }
 
